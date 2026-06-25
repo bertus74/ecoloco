@@ -78,7 +78,10 @@ export default async function ProspectPage({
         .returns<Commercial[]>()
     : { data: null };
 
-  const detail = (scoringLog?.detail ?? {}) as ScoreDetail;
+  const rawDetail = scoringLog?.detail;
+  const detail = (
+    typeof rawDetail === "string" ? JSON.parse(rawDetail) : rawDetail ?? {}
+  ) as ScoreDetail;
   const jours = joursSans(prospect.derniere_interaction);
   const mapsQuery = encodeURIComponent(
     `${prospect.Adresse ?? ""} ${prospect.Ville ?? ""} ${prospect.pays ?? ""}`,
@@ -240,9 +243,18 @@ export default async function ProspectPage({
             Ouvrir dans Google Maps →
           </a>
         </div>
-        <div className="flex h-32 items-center justify-center rounded-md bg-[var(--background)] text-sm text-[var(--muted)]">
-          Carte non disponible (clé API Maps à configurer)
-        </div>
+        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+          <iframe
+            className="h-56 w-full rounded-md border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${mapsQuery}`}
+          />
+        ) : (
+          <div className="flex h-32 items-center justify-center rounded-md bg-[var(--background)] text-sm text-[var(--muted)]">
+            Carte non disponible (clé API Maps à configurer)
+          </div>
+        )}
       </div>
 
       <div className="mb-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
