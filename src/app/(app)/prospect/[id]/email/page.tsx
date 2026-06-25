@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Commercial } from "@/lib/types";
+import type { Commerc, Commercial } from "@/lib/types";
 import { genererBrouillon } from "@/lib/email-ia";
 import { EmailForm } from "./email-form";
 

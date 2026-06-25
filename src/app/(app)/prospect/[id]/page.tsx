@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Commerc, Interaction } from "@/lib/types";
+import type { Commerc, Commercial, Interaction } from "@/lib/types";
 import {
   addInteraction,
   changerCommercial,
@@ -71,7 +71,11 @@ export default async function ProspectPage({
   }
 
   const { data: commerciaux } = isDg
-    ? await supabase.from("commerciaux").select("id, Nom, Prénom").eq("role", "commercial")
+    ? await supabase
+        .from("commerciaux")
+        .select("*")
+        .eq("role", "commercial")
+        .returns<Commercial[]>()
     : { data: null };
 
   const detail = (scoringLog?.detail ?? {}) as ScoreDetail;
