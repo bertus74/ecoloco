@@ -19,6 +19,7 @@ export function ScrapingForm() {
   const router = useRouter();
   const [etat, formAction, pending] = useActionState<EtatLancement, FormData>(lancerProspection, {});
   const [suivi, setSuivi] = useState<{ statut: StatutSuivi; nbLeads: number | null } | null>(null);
+  const [rayon, setRayon] = useState(2);
   const demandeSuivieRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -97,13 +98,17 @@ export function ScrapingForm() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm text-[var(--muted)]">Rayon de recherche (km)</label>
+          <label className="mb-1 flex items-center justify-between text-sm text-[var(--muted)]">
+            <span>Rayon de recherche</span>
+            <span className="font-medium text-[var(--foreground)]">{rayon} km</span>
+          </label>
           <input
             name="rayon_km"
             type="range"
             min={1}
             max={20}
-            defaultValue={2}
+            value={rayon}
+            onChange={(e) => setRayon(Number(e.target.value))}
             className="w-full"
           />
         </div>
