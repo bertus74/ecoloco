@@ -5,24 +5,29 @@ import { createClient } from "@/lib/supabase/server";
 
 const WF01_WEBHOOK_URL = "https://bertus74.app.n8n.cloud/webhook/lancer-prospection";
 
-export async function lancerProspection(formData: FormData) {
+export type EtatLancement = { demandeId?: number; erreur?: string };
+
+export async function lancerProspection(
+  _etatPrecedent: EtatLancement,
+  formData: FormData,
+): Promise<EtatLancement> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("Non authentifié");
+  if (!auth.user) return { erreur: "Non authentifié" };
 
   const { data: profile } = await supabase
     .from("commerciaux")
     .select("id")
     .eq("auth_user_id", auth.user.id)
     .single();
-  if (!profile) throw new Error("Profil commercial introuvable");
+  if (!profile) return { erreur: "Profil commercial introuvable" };
 
   const pays = String(formData.get("pays") ?? "France");
   const code_postal = String(formData.get("code_postal") ?? "").trim();
   const type_commerce = String(formData.get("type_commerce") ?? "");
   const rayon_km = Number(formData.get("rayon_km") ?? 2);
 
-  if (!code_postal) throw new Error("Code postal ou ville requis");
+  if (!code_postal) return { erreur: "Code postal ou ville requis" };
 
   const { data: demande, error } = await supabase
     .from("demandes_scraping")
@@ -37,7 +42,7 @@ export async function lancerProspection(formData: FormData) {
     .select()
     .single();
 
-  if (error || !demande) throw new Error(error?.message ?? "Échec de la création de la demande");
+  if (error || !demande) return { erreur: error?.message ?? "Échec de la création de la demande" };
 
   const url = new URL(WF01_WEBHOOK_URL);
   url.searchParams.set("demande_id", String(demande.id));
@@ -60,4 +65,5 @@ export async function lancerProspection(formData: FormData) {
   }
 
   revalidatePath("/scraping");
+  return { demandeId: demande.id };
 }

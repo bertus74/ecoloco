@@ -1,14 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { lancerProspection } from "./actions";
-import { SubmitButton } from "./submit-button";
-
-const PAYS_OPTIONS = [
-  "France", "Allemagne", "Autriche", "Belgique", "Chypre", "Espagne", "Estonie",
-  "Finlande", "Grèce", "Irlande", "Italie", "Lettonie", "Lituanie", "Luxembourg",
-  "Malte", "Pays-Bas", "Portugal", "Slovaquie", "Slovénie",
-];
-
-const TYPES_COMMERCE = ["Boulangerie", "Charcuterie", "Traiteur", "Restaurant", "Pizzeria", "Poissonnerie", "Autre"];
+import { ScrapingForm } from "./scraping-form";
 
 function statutBadgeClass(statut: string) {
   if (statut === "Termine") return "bg-[var(--success-light)] text-[var(--success)]";
@@ -32,57 +23,7 @@ export default async function ScrapingPage() {
         Recherche un nouveau lot de prospects via Google Maps.
       </p>
 
-      <form action={lancerProspection} className="mb-10 flex max-w-md flex-col gap-4">
-        <div>
-          <label className="mb-1 block text-sm text-[var(--muted)]">Pays</label>
-          <select
-            name="pays"
-            defaultValue="France"
-            className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
-          >
-            {PAYS_OPTIONS.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm text-[var(--muted)]">Code postal</label>
-          <input
-            name="code_postal"
-            type="text"
-            required
-            placeholder="ex: 9000"
-            className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm text-[var(--muted)]">Type de commerce</label>
-          <select
-            name="type_commerce"
-            className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
-          >
-            {TYPES_COMMERCE.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm text-[var(--muted)]">Rayon de recherche (km)</label>
-          <input
-            name="rayon_km"
-            type="range"
-            min={1}
-            max={20}
-            defaultValue={2}
-            className="w-full"
-          />
-        </div>
-
-        <SubmitButton />
-      </form>
+      <ScrapingForm />
 
       <div className="border-t border-[var(--border)] pt-5">
         <h2 className="mb-3 text-base font-medium">Dernières recherches</h2>
