@@ -7,7 +7,7 @@ const PAYS_OPTIONS = [
   "Malte", "Pays-Bas", "Portugal", "Slovaquie", "Slovénie",
 ];
 
-const TYPES_COMMERCE = ["Boulangerie", "Charcuterie", "Traiteur", "Restaurant", "Poissonnerie", "Autre"];
+const TYPES_COMMERCE = ["Boulangerie", "Charcuterie", "Traiteur", "Restaurant", "Pizzeria", "Poissonnerie", "Autre"];
 
 function statutBadgeClass(statut: string) {
   if (statut === "Termine") return "bg-[var(--success-light)] text-[var(--success)]";

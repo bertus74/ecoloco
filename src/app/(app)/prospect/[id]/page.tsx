@@ -12,7 +12,7 @@ import {
 import { InlineSelect } from "./inline-select";
 
 const STATUTS = [
-  "Nouveau", "Contacté", "Intéressé", "RDV planifié", "Diagnostic vendu", "Perdu", "Blacklist",
+  "À valider", "Nouveau", "Contacté", "Intéressé", "RDV planifié", "Diagnostic vendu", "Perdu", "Blacklist",
 ];
 
 interface ScoreDetail {

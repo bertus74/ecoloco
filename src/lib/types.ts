@@ -1,4 +1,5 @@
 export type StatutProspect =
+  | "À valider"
   | "Nouveau"
   | "Contacté"
   | "Intéressé"

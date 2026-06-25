@@ -23,7 +23,7 @@ export default async function CockpitPage() {
   const { data: prospects } = await supabase
     .from("commerc")
     .select("*")
-    .not("statut_prospect", "in", '("Perdu","Blacklist")')
+    .not("statut_prospect", "in", '("Perdu","Blacklist","À valider")')
     .returns<Commerc[]>();
 
   const { data: commerciaux } = await supabase
