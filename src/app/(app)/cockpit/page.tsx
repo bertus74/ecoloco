@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Commerc, Commercial } from "@/lib/types";
+import { ParCommercialBarChart, StatutBarChart } from "./charts";
+
+const STATUTS_ORDRE = [
+  "Nouveau", "Contacté", "Intéressé", "RDV planifié", "Diagnostic vendu", "Perdu", "Blacklist",
+];
 
 export default async function CockpitPage() {
   const supabase = await createClient();
@@ -40,6 +45,12 @@ export default async function CockpitPage() {
       devisVendus: leads.filter((p) => p.statut_prospect === "Diagnostic vendu").length,
     };
   });
+
+  const statutCounts = STATUTS_ORDRE.map(
+    (s) => list.filter((p) => p.statut_prospect === s).length,
+  );
+  const statutLabelsAvecDonnees = STATUTS_ORDRE.filter((_, i) => statutCounts[i] > 0);
+  const statutCountsAvecDonnees = statutCounts.filter((c) => c > 0);
 
   return (
     <div>
@@ -87,6 +98,20 @@ export default async function CockpitPage() {
             <div>{devisVendus}</div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-4">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <h2 className="mb-3 text-base font-medium">Pipeline par statut</h2>
+          <StatutBarChart labels={statutLabelsAvecDonnees} data={statutCountsAvecDonnees} />
+        </div>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <h2 className="mb-3 text-base font-medium">Prospects par commercial</h2>
+          <ParCommercialBarChart
+            labels={parCommercial.map(({ commercial }) => `${commercial.Prénom} ${commercial.Nom}`)}
+            data={parCommercial.map((p) => p.leadsActifs)}
+          />
+        </div>
       </div>
     </div>
   );
