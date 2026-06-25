@@ -15,7 +15,29 @@ function joursSans(date: string | null) {
   return Math.floor(diff / 86_400_000);
 }
 
-export default async function PipelinePage() {
+type Champ = "nom" | "score" | "statut" | "avis" | "activite";
+
+const CHAMPS: Record<Champ, (p: Commerc) => string | number> = {
+  nom: (p) => p.Nom ?? "",
+  score: (p) => p.Score_Energ ?? -1,
+  statut: (p) => p.statut_prospect ?? "",
+  avis: (p) => p.Nbre_Avis ?? -1,
+  activite: (p) => p.derniere_interaction ?? "",
+};
+
+export default async function PipelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string; dir?: string }>;
+}) {
+  const { sort, dir } = await searchParams;
+  const champTri: Champ = (["nom", "score", "statut", "avis", "activite"] as Champ[]).includes(
+    sort as Champ,
+  )
+    ? (sort as Champ)
+    : "score";
+  const sensTri = dir === "asc" ? "asc" : "desc";
+
   const supabase = await createClient();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -47,7 +69,14 @@ export default async function PipelinePage() {
     .gte("date_rdv", new Date().toISOString())
     .lte("date_rdv", dansSeptJours.toISOString());
 
-  const list = prospects ?? [];
+  const listeBrute = prospects ?? [];
+  const getValeur = CHAMPS[champTri];
+  const list = [...listeBrute].sort((a, b) => {
+    const va = getValeur(a);
+    const vb = getValeur(b);
+    const cmp = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb));
+    return sensTri === "asc" ? cmp : -cmp;
+  });
   const enAttenteValidation = aValider ?? [];
   const aRelancer = list.filter(
     (p) => p.prochaine_relance_le && p.prochaine_relance_le <= today,
@@ -150,11 +179,27 @@ export default async function PipelinePage() {
 
       <div className="overflow-hidden rounded-lg border border-[var(--border)]">
         <div className="grid grid-cols-[1.6fr_0.8fr_1fr_0.8fr_1fr] gap-0 bg-[var(--background)] px-4 py-2.5 text-xs text-[var(--muted)]">
-          <div>Prospect</div>
-          <div>Score</div>
-          <div>Statut</div>
-          <div>Avis</div>
-          <div>Dernière activité</div>
+          {(
+            [
+              ["nom", "Prospect"],
+              ["score", "Score"],
+              ["statut", "Statut"],
+              ["avis", "Avis"],
+              ["activite", "Dernière activité"],
+            ] as [Champ, string][]
+          ).map(([champ, label]) => {
+            const prochainSens = champTri === champ && sensTri === "asc" ? "desc" : "asc";
+            return (
+              <Link
+                key={champ}
+                href={`/pipeline?sort=${champ}&dir=${prochainSens}`}
+                className="flex items-center gap-1 hover:text-[var(--foreground)]"
+              >
+                {label}
+                {champTri === champ ? <span>{sensTri === "asc" ? "↑" : "↓"}</span> : null}
+              </Link>
+            );
+          })}
         </div>
 
         {list.length === 0 ? (
