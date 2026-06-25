@@ -78,3 +78,13 @@ export async function changerStatut(prospectId: string, statut: string) {
   await supabase.from("commerc").update({ statut_prospect: statut }).eq("id", prospectId);
   revalidatePath(`/prospect/${prospectId}`);
 }
+
+export async function changerCommercial(prospectId: string, commercialId: string) {
+  const supabase = await createClient();
+  await supabase
+    .from("commerc")
+    .update({ commercial_id: Number(commercialId) })
+    .eq("id", prospectId);
+  revalidatePath(`/prospect/${prospectId}`);
+  revalidatePath("/pipeline");
+}

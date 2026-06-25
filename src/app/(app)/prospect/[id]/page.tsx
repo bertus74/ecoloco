@@ -4,11 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 import type { Commerc, Interaction } from "@/lib/types";
 import {
   addInteraction,
+  changerCommercial,
   changerStatut,
   reporterRelance,
   updateContact,
 } from "./actions";
-import { StatutSelect } from "./statut-select";
+import { InlineSelect } from "./inline-select";
+
+const STATUTS = [
+  "Nouveau", "Contacté", "Intéressé", "RDV planifié", "Diagnostic vendu", "Perdu", "Blacklist",
+];
 
 interface ScoreDetail {
   type?: number;
@@ -54,6 +59,21 @@ export default async function ProspectPage({
     .order("created_at", { ascending: false })
     .returns<Interaction[]>();
 
+  const { data: auth } = await supabase.auth.getUser();
+  let isDg = false;
+  if (auth.user) {
+    const { data: profile } = await supabase
+      .from("commerciaux")
+      .select("role")
+      .eq("auth_user_id", auth.user.id)
+      .single();
+    isDg = profile?.role === "dg";
+  }
+
+  const { data: commerciaux } = isDg
+    ? await supabase.from("commerciaux").select("id, Nom, Prénom").eq("role", "commercial")
+    : { data: null };
+
   const detail = (scoringLog?.detail ?? {}) as ScoreDetail;
   const jours = joursSans(prospect.derniere_interaction);
   const mapsQuery = encodeURIComponent(
@@ -64,6 +84,7 @@ export default async function ProspectPage({
   const addInteractionBound = addInteraction.bind(null, id);
   const reporterRelanceBound = reporterRelance.bind(null, id, prospect.nb_reports_relance);
   const changerStatutBound = changerStatut.bind(null, id);
+  const changerCommercialBound = changerCommercial.bind(null, id);
 
   return (
     <div className="max-w-3xl">
@@ -178,12 +199,28 @@ export default async function ProspectPage({
             </button>
           </form>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-[var(--muted)]">Statut :</span>
-          <StatutSelect
-            statutActuel={prospect.statut_prospect ?? "Nouveau"}
-            onChangeStatut={changerStatutBound}
-          />
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--muted)]">Statut :</span>
+            <InlineSelect
+              defaultValue={prospect.statut_prospect ?? "Nouveau"}
+              options={STATUTS.map((s) => ({ value: s, label: s }))}
+              onChangeValue={changerStatutBound}
+            />
+          </div>
+          {isDg && commerciaux ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--muted)]">Commercial :</span>
+              <InlineSelect
+                defaultValue={String(prospect.commercial_id ?? "")}
+                options={commerciaux.map((c) => ({
+                  value: String(c.id),
+                  label: `${c.Prénom} ${c.Nom}`,
+                }))}
+                onChangeValue={changerCommercialBound}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
