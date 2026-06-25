@@ -15,13 +15,19 @@ function joursSans(date: string | null) {
   return Math.floor(diff / 86_400_000);
 }
 
-type Champ = "nom" | "score" | "statut" | "avis" | "activite";
+function fmtDate(date: string | null) {
+  if (!date) return "—";
+  return new Date(date).toLocaleDateString("fr-FR");
+}
+
+type Champ = "nom" | "score" | "statut" | "avis" | "scrape" | "activite";
 
 const CHAMPS: Record<Champ, (p: Commerc) => string | number> = {
   nom: (p) => p.Nom ?? "",
   score: (p) => p.Score_Energ ?? -1,
   statut: (p) => p.statut_prospect ?? "",
   avis: (p) => p.Nbre_Avis ?? -1,
+  scrape: (p) => p.created_at ?? "",
   activite: (p) => p.derniere_interaction ?? "",
 };
 
@@ -31,9 +37,9 @@ export default async function PipelinePage({
   searchParams: Promise<{ sort?: string; dir?: string }>;
 }) {
   const { sort, dir } = await searchParams;
-  const champTri: Champ = (["nom", "score", "statut", "avis", "activite"] as Champ[]).includes(
-    sort as Champ,
-  )
+  const champTri: Champ = (
+    ["nom", "score", "statut", "avis", "scrape", "activite"] as Champ[]
+  ).includes(sort as Champ)
     ? (sort as Champ)
     : "score";
   const sensTri = dir === "asc" ? "asc" : "desc";
@@ -178,13 +184,14 @@ export default async function PipelinePage({
       ) : null}
 
       <div className="overflow-hidden rounded-lg border border-[var(--border)]">
-        <div className="grid grid-cols-[1.6fr_0.8fr_1fr_0.8fr_1fr] gap-0 bg-[var(--background)] px-4 py-2.5 text-xs text-[var(--muted)]">
+        <div className="grid grid-cols-[1.4fr_0.7fr_0.9fr_0.6fr_0.9fr_1fr] gap-0 bg-[var(--background)] px-4 py-2.5 text-xs text-[var(--muted)]">
           {(
             [
               ["nom", "Prospect"],
               ["score", "Score"],
               ["statut", "Statut"],
               ["avis", "Avis"],
+              ["scrape", "Scrappé le"],
               ["activite", "Dernière activité"],
             ] as [Champ, string][]
           ).map(([champ, label]) => {
@@ -213,7 +220,7 @@ export default async function PipelinePage({
               <Link
                 key={p.id}
                 href={`/prospect/${p.id}`}
-                className="grid grid-cols-[1.6fr_0.8fr_1fr_0.8fr_1fr] items-center gap-0 border-t border-[var(--border)] px-4 py-3 hover:bg-[var(--background)]"
+                className="grid grid-cols-[1.4fr_0.7fr_0.9fr_0.6fr_0.9fr_1fr] items-center gap-0 border-t border-[var(--border)] px-4 py-3 hover:bg-[var(--background)]"
               >
                 <div>
                   <p className="text-sm font-medium">{p.Nom}</p>
@@ -230,6 +237,7 @@ export default async function PipelinePage({
                 </div>
                 <div className="text-sm">{p.statut_prospect}</div>
                 <div className="text-sm">{p.Nbre_Avis ?? "—"}</div>
+                <div className="text-xs text-[var(--muted)]">{fmtDate(p.created_at)}</div>
                 <div className="text-xs text-[var(--muted)]">
                   {jours === null
                     ? "Jamais contacté"

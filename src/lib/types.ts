@@ -42,6 +42,7 @@ export interface Commerc {
   motif_refus: string | null;
   montant_devis: number | null;
   ca_potentiel: number | null;
+  valide_le: string | null;
 }
 
 export interface Commercial {
