@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { lancerProspection } from "./actions";
+import { SubmitButton } from "./submit-button";
 
 const PAYS_OPTIONS = [
   "France", "Allemagne", "Autriche", "Belgique", "Chypre", "Espagne", "Estonie",
@@ -80,12 +81,7 @@ export default async function ScrapingPage() {
           />
         </div>
 
-        <button
-          type="submit"
-          className="mt-2 rounded-md bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--primary-dark)]"
-        >
-          Lancer la recherche
-        </button>
+        <SubmitButton />
       </form>
 
       <div className="border-t border-[var(--border)] pt-5">
