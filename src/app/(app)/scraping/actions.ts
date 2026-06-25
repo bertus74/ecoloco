@@ -50,6 +50,7 @@ export async function lancerProspection(
   url.searchParams.set("code_postal", code_postal);
   url.searchParams.set("pays", pays);
   url.searchParams.set("type_commerce", type_commerce);
+  url.searchParams.set("rayon_km", String(rayon_km));
 
   try {
     const res = await fetch(url.toString(), { method: "GET" });
