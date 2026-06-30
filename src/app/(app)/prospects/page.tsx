@@ -69,7 +69,7 @@ export default async function ProspectsPage({
   const aRelancer = actifs.filter(
     (p) => p.prochaine_relance_le && p.prochaine_relance_le <= today,
   ).length;
-  const caPotentiel = actifs.reduce((sum, p) => sum + (p.ca_potentiel ?? 0), 0);
+  const caPotentiel = actifs.reduce((sum, p) => sum + (p.devis_potentiel ?? 0), 0);
   const caGenere = (ventes ?? []).reduce((sum, v) => sum + (v.montant_devis ?? 0), 0);
 
   const { data: interactions } = ids.length

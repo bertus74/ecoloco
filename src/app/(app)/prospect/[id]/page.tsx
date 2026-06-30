@@ -134,9 +134,15 @@ export default async function ProspectPage({
           <table className="w-full text-sm">
             <tbody>
               <tr>
-                <td className="py-1.5 text-[var(--muted)]">CA potentiel</td>
+                <td className="py-1.5 text-[var(--muted)]">CA potentiel (EcoLoco)</td>
                 <td className="py-1.5 text-right font-medium">
-                  {prospect.ca_potentiel != null ? `${prospect.ca_potentiel.toLocaleString("fr-FR")} €` : "—"}
+                  {prospect.devis_potentiel != null ? `${prospect.devis_potentiel.toLocaleString("fr-FR")} €` : "—"}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-1.5 text-[var(--muted)]">Économies estimées (prospect)</td>
+                <td className="py-1.5 text-right font-medium">
+                  {prospect.ca_potentiel != null ? `${prospect.ca_potentiel.toLocaleString("fr-FR")} €/an` : "—"}
                 </td>
               </tr>
               <tr>

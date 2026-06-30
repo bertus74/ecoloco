@@ -34,14 +34,14 @@ export default async function CockpitPage() {
 
   const list = prospects ?? [];
   const enCours = list.filter((p) => p.statut_prospect !== "Diagnostic vendu");
-  const caPotentielTotal = list.reduce((sum, p) => sum + (p.ca_potentiel ?? 0), 0);
+  const caPotentielTotal = list.reduce((sum, p) => sum + (p.devis_potentiel ?? 0), 0);
 
   const parCommercial = (commerciaux ?? []).map((c) => {
     const leads = list.filter((p) => p.commercial_id === c.id);
     return {
       commercial: c,
       leadsActifs: leads.filter((p) => p.statut_prospect !== "Diagnostic vendu").length,
-      caPotentiel: leads.reduce((sum, p) => sum + (p.ca_potentiel ?? 0), 0),
+      caPotentiel: leads.reduce((sum, p) => sum + (p.devis_potentiel ?? 0), 0),
       devisVendus: leads.filter((p) => p.statut_prospect === "Diagnostic vendu").length,
     };
   });

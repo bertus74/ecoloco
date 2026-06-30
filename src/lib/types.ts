@@ -41,7 +41,10 @@ export interface Commerc {
   rappel_18_mois_le: string | null;
   motif_refus: string | null;
   montant_devis: number | null;
+  /** Économies annuelles estimées du prospect sur sa facture énergétique. */
   ca_potentiel: number | null;
+  /** Valeur potentielle de la prestation pour EcoLoco (CA pipeline). */
+  devis_potentiel: number | null;
   valide_le: string | null;
 }
 
