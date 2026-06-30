@@ -39,14 +39,38 @@ export default async function ProspectsPage({
 
   const supabase = await createClient();
 
+  const today = new Date().toISOString().slice(0, 10);
+  const dansSeptJours = new Date();
+  dansSeptJours.setDate(dansSeptJours.getDate() + 7);
+
   const { data: prospects } = await supabase
     .from("commerc")
     .select("*")
     .not("valide_le", "is", null)
     .returns<Commerc[]>();
 
+  const { data: ventes } = await supabase
+    .from("commerc")
+    .select("montant_devis")
+    .eq("statut_prospect", "Diagnostic vendu");
+
+  const { count: rdvSemaine } = await supabase
+    .from("rdv")
+    .select("id", { count: "exact", head: true })
+    .gte("date_rdv", new Date().toISOString())
+    .lte("date_rdv", dansSeptJours.toISOString());
+
   const liste = prospects ?? [];
   const ids = liste.map((p) => p.id);
+
+  const actifs = liste.filter(
+    (p) => !["Perdu", "Blacklist", "Diagnostic vendu"].includes(p.statut_prospect ?? ""),
+  );
+  const aRelancer = actifs.filter(
+    (p) => p.prochaine_relance_le && p.prochaine_relance_le <= today,
+  ).length;
+  const caPotentiel = actifs.reduce((sum, p) => sum + (p.ca_potentiel ?? 0), 0);
+  const caGenere = (ventes ?? []).reduce((sum, v) => sum + (v.montant_devis ?? 0), 0);
 
   const { data: interactions } = ids.length
     ? await supabase
@@ -93,6 +117,33 @@ export default async function ProspectsPage({
           </p>
         </div>
         <span className="text-sm text-[var(--muted)]">{listeTriee.length} prospect{listeTriee.length === 1 ? "" : "s"}</span>
+      </div>
+
+      <div className="mb-6 grid grid-cols-4 gap-3">
+        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
+          <p className="mb-1 text-xs text-[var(--muted)]">Prospects actifs</p>
+          <p className="text-2xl font-medium">{actifs.length}</p>
+        </div>
+        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
+          <p className="mb-1 text-xs text-[var(--muted)]">À relancer</p>
+          <p className="text-2xl font-medium text-[var(--warning)]">{aRelancer}</p>
+        </div>
+        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
+          <p className="mb-1 text-xs text-[var(--muted)]">RDV à venir (7j)</p>
+          <p className="text-2xl font-medium">{rdvSemaine ?? 0}</p>
+        </div>
+        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
+          <p className="mb-1 text-xs text-[var(--muted)]">CA généré</p>
+          <p className="text-2xl font-medium text-[var(--success)]">
+            {caGenere.toLocaleString("fr-FR")}&nbsp;€
+          </p>
+        </div>
+        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
+          <p className="mb-1 text-xs text-[var(--muted)]">CA potentiel</p>
+          <p className="text-2xl font-medium">
+            {caPotentiel.toLocaleString("fr-FR")}&nbsp;€
+          </p>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-[var(--border)]">
