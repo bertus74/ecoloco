@@ -3,6 +3,8 @@ import type { Commerc, Commercial } from "@/lib/types";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// prospect.ca_potentiel = estimation des économies annuelles du prospect (pas le CA EcoLoco,
+// voir devis_potentiel). Formule, sources et limites : docs/ca-potentiel-formule.md
 function genererBrouillonTemplate(prospect: Commerc, commercial: Commercial | null) {
   const nom = prospect.Nom ?? "votre établissement";
   const ville = prospect.Ville ?? "";
