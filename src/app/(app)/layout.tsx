@@ -29,7 +29,7 @@ export default async function AppLayout({
   const navItems = [
     { href: "/pipeline", label: "Pipeline", icon: "📋" },
     { href: "/prospects", label: "Prospects", icon: "📇" },
-    { href: "/scraping", label: "Prospection", icon: "🔍" },
+    { href: "/scraping", label: "Scraping", icon: "🔍" },
     { href: "/calendrier", label: "Calendrier", icon: "📅" },
   ];
   if (isDg) {

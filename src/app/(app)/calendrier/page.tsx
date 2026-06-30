@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Commerc, Commercial, Rdv } from "@/lib/types";
 import { creerRdv } from "./actions";
+import { RdvFiche } from "./rdv-fiche";
 
 const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
@@ -76,6 +77,16 @@ export default async function CalendrierPage({
     ? await supabase.from("commerc").select("id, Nom, Ville").in("id", commercIds)
     : { data: [] as { id: number; Nom: string; Ville: string }[] };
   const nomParId = new Map((prospectsForRdv ?? []).map((p) => [p.id, p]));
+
+  const commercialIdsRdv = [...new Set((rdvs ?? []).map((r) => r.commercial_id))];
+  const { data: commerciauxForRdv } = commercialIdsRdv.length
+    ? await supabase
+        .from("commerciaux")
+        .select("*")
+        .in("id", commercialIdsRdv)
+        .returns<Commercial[]>()
+    : { data: [] as Commercial[] };
+  const commercialParId = new Map((commerciauxForRdv ?? []).map((c) => [c.id, c]));
 
   const { data: mesProspects } = await supabase
     .from("commerc")
@@ -196,22 +207,9 @@ export default async function CalendrierPage({
           ) : (
             (rdvs ?? []).map((r) => {
               const p = nomParId.get(r.commerc_id);
+              const c = commercialParId.get(r.commercial_id) ?? null;
               return (
-                <Link
-                  key={r.id}
-                  href={`/prospect/${r.commerc_id}`}
-                  className="flex items-center gap-4 border-t border-[var(--border)] px-4 py-3 text-sm first:border-0 hover:bg-[var(--background)]"
-                >
-                  <span className="w-28 text-[var(--muted)]">
-                    {new Date(r.date_rdv).toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit" })}
-                  </span>
-                  <span className="w-14 font-medium">
-                    {new Date(r.date_rdv).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <span className="flex-1">{p?.Nom ?? `#${r.commerc_id}`}</span>
-                  <span className="text-[var(--muted)]">{r.lieu ?? ""}</span>
-                  <span className="text-xs text-[var(--muted)]">{r.statut}</span>
-                </Link>
+                <RdvFiche key={r.id} rdv={r} prospect={p ?? null} commercial={c} variant="agenda" />
               );
             })
           )}
@@ -230,17 +228,9 @@ export default async function CalendrierPage({
                 <div className="flex min-h-24 flex-col gap-1.5 rounded-md bg-[var(--background)] p-1.5">
                   {dayRdvs.map((r) => {
                     const p = nomParId.get(r.commerc_id);
+                    const c = commercialParId.get(r.commercial_id) ?? null;
                     return (
-                      <Link
-                        key={r.id}
-                        href={`/prospect/${r.commerc_id}`}
-                        className="rounded-md bg-[var(--primary-light)] px-2 py-1.5 text-xs text-[var(--primary-dark)]"
-                      >
-                        <p className="font-medium">
-                          {new Date(r.date_rdv).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                        <p>{p?.Nom ?? `#${r.commerc_id}`}</p>
-                      </Link>
+                      <RdvFiche key={r.id} rdv={r} prospect={p ?? null} commercial={c} variant="compact" />
                     );
                   })}
                 </div>

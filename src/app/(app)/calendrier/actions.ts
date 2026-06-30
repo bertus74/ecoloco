@@ -49,3 +49,37 @@ export async function changerStatutRdv(rdvId: number, statut: string) {
   await supabase.from("rdv").update({ statut }).eq("id", rdvId);
   revalidatePath("/calendrier");
 }
+
+export async function modifierRdv(rdvId: number, formData: FormData) {
+  const supabase = await createClient();
+
+  const date = String(formData.get("date") ?? "");
+  const heure = String(formData.get("heure") ?? "09:00");
+  const duree_minutes = Number(formData.get("duree_minutes") ?? 60);
+  const lieu = String(formData.get("lieu") ?? "");
+  const note = String(formData.get("note") ?? "");
+  const statut = String(formData.get("statut") ?? "Planifié");
+
+  if (!date) throw new Error("Date requise");
+
+  const date_rdv = new Date(`${date}T${heure}:00`).toISOString();
+
+  await supabase
+    .from("rdv")
+    .update({
+      date_rdv,
+      duree_minutes,
+      lieu: lieu || null,
+      note: note || null,
+      statut,
+    })
+    .eq("id", rdvId);
+
+  revalidatePath("/calendrier");
+}
+
+export async function supprimerRdv(rdvId: number) {
+  const supabase = await createClient();
+  await supabase.from("rdv").delete().eq("id", rdvId);
+  revalidatePath("/calendrier");
+}
