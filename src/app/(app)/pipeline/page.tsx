@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Commerc } from "@/lib/types";
-import { supprimerScrappe, validerProspect } from "./actions";
+import { ValiderList } from "./valider-list";
 
 function scoreBadgeClass(niveau: string | null) {
   if (niveau === "Chaud") return "bg-[var(--danger-light)] text-[var(--danger)]";
@@ -31,18 +31,27 @@ const CHAMPS: Record<Champ, (p: Commerc) => string | number> = {
   activite: (p) => p.derniere_interaction ?? "",
 };
 
+type ChampValider = "nom" | "score" | "avis";
+
 export default async function PipelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; dir?: string }>;
+  searchParams: Promise<{ sort?: string; dir?: string; sortV?: string; dirV?: string }>;
 }) {
-  const { sort, dir } = await searchParams;
+  const { sort, dir, sortV, dirV } = await searchParams;
   const champTri: Champ = (
     ["nom", "score", "statut", "avis", "scrape", "activite"] as Champ[]
   ).includes(sort as Champ)
     ? (sort as Champ)
     : "score";
   const sensTri = dir === "asc" ? "asc" : "desc";
+
+  const champTriValider: ChampValider = (
+    ["nom", "score", "avis"] as ChampValider[]
+  ).includes(sortV as ChampValider)
+    ? (sortV as ChampValider)
+    : "score";
+  const sensTriValider = dirV === "asc" ? "asc" : "desc";
 
   const supabase = await createClient();
 
@@ -83,7 +92,14 @@ export default async function PipelinePage({
     const cmp = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb));
     return sensTri === "asc" ? cmp : -cmp;
   });
-  const enAttenteValidation = aValider ?? [];
+  const aValiderBrut = aValider ?? [];
+  const getValeurValider = CHAMPS[champTriValider];
+  const enAttenteValidation = [...aValiderBrut].sort((a, b) => {
+    const va = getValeurValider(a);
+    const vb = getValeurValider(b);
+    const cmp = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb));
+    return sensTriValider === "asc" ? cmp : -cmp;
+  });
   const aRelancer = list.filter(
     (p) => p.prochaine_relance_le && p.prochaine_relance_le <= today,
   ).length;
@@ -136,52 +152,29 @@ export default async function PipelinePage({
       </div>
 
       {enAttenteValidation.length > 0 ? (
-        <div className="mb-6 overflow-hidden rounded-lg border border-[var(--border)]">
-          <div className="grid grid-cols-[1.6fr_0.8fr_1fr_1fr] gap-0 bg-[var(--warning-light)] px-4 py-2.5 text-xs text-[var(--warning)]">
-            <div>Scrappé (à valider)</div>
-            <div>Score</div>
-            <div>Avis</div>
-            <div>Actions</div>
-          </div>
-          {enAttenteValidation.map((p) => (
-            <div
-              key={p.id}
-              className="grid grid-cols-[1.6fr_0.8fr_1fr_1fr] items-center gap-0 border-t border-[var(--border)] px-4 py-3"
-            >
-              <div>
-                <p className="text-sm font-medium">{p.Nom}</p>
-                <p className="text-xs text-[var(--muted)]">
-                  {p.Ville}{p.pays ? `, ${p.pays}` : ""}
-                </p>
-              </div>
-              <div>
-                <span className={`rounded-md px-2 py-0.5 text-xs ${scoreBadgeClass(p.Niveau)}`}>
-                  {p.Score_Energ ?? "—"}
-                </span>
-              </div>
-              <div className="text-sm">{p.Nbre_Avis ?? "—"}</div>
-              <div className="flex gap-2">
-                <form action={validerProspect.bind(null, p.id)}>
-                  <button
-                    type="submit"
-                    className="rounded-md bg-[var(--primary)] px-3 py-1 text-xs text-white"
-                  >
-                    Valider en prospect
-                  </button>
-                </form>
-                <form action={supprimerScrappe.bind(null, p.id)}>
-                  <button
-                    type="submit"
-                    className="rounded-md border border-[var(--border)] px-3 py-1 text-xs text-[var(--danger)]"
-                  >
-                    Supprimer
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))}
+        <div className="mb-2 flex justify-end gap-3 px-1 text-xs">
+          {(
+            [
+              ["nom", "Nom"],
+              ["score", "Score"],
+              ["avis", "Avis"],
+            ] as [ChampValider, string][]
+          ).map(([champ, label]) => {
+            const prochainSens = champTriValider === champ && sensTriValider === "asc" ? "desc" : "asc";
+            return (
+              <Link
+                key={champ}
+                href={`/pipeline?sort=${champTri}&dir=${sensTri}&sortV=${champ}&dirV=${prochainSens}`}
+                className="flex items-center gap-1 text-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                Trier par {label}
+                {champTriValider === champ ? <span>{sensTriValider === "asc" ? "↑" : "↓"}</span> : null}
+              </Link>
+            );
+          })}
         </div>
       ) : null}
+      {enAttenteValidation.length > 0 ? <ValiderList items={enAttenteValidation} /> : null}
 
       <div className="overflow-hidden rounded-lg border border-[var(--border)]">
         <div className="grid grid-cols-[1.4fr_0.7fr_0.9fr_0.6fr_0.9fr_1fr] gap-0 bg-[var(--background)] px-4 py-2.5 text-xs text-[var(--muted)]">
@@ -199,7 +192,7 @@ export default async function PipelinePage({
             return (
               <Link
                 key={champ}
-                href={`/pipeline?sort=${champ}&dir=${prochainSens}`}
+                href={`/pipeline?sort=${champ}&dir=${prochainSens}&sortV=${champTriValider}&dirV=${sensTriValider}`}
                 className="flex items-center gap-1 hover:text-[var(--foreground)]"
               >
                 {label}
