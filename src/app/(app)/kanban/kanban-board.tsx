@@ -61,7 +61,9 @@ export function KanbanBoard({
       {erreur ? (
         <p className="mb-3 rounded-md bg-[var(--danger-light)] px-3 py-2 text-sm text-[var(--danger)]">{erreur}</p>
       ) : null}
-      <div className="flex gap-3 overflow-x-auto pb-4">
+      {/* Hauteur bornée à la fenêtre : la barre de défilement horizontale reste visible en bas de l'écran,
+          chaque colonne défile verticalement. */}
+      <div className="kanban-scroll flex h-[calc(100vh-200px)] min-h-80 gap-3 overflow-x-auto pb-3">
         {COLONNES_KANBAN.map((col) => {
           const items = cartes.filter((c) => c.statut === col).sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
           const masques = totaux[col] - items.length;
@@ -83,7 +85,7 @@ export function KanbanBoard({
                 setDragId(null);
                 setSurvol(null);
               }}
-              className={`flex w-64 shrink-0 flex-col rounded-lg border transition-colors ${
+              className={`flex max-h-full w-64 shrink-0 flex-col rounded-lg border transition-colors ${
                 survol === col ? "border-[var(--primary)] bg-[var(--primary-light)]" : "border-transparent bg-[#eef0f3]"
               }`}
             >
@@ -100,7 +102,7 @@ export function KanbanBoard({
                 ) : null}
               </div>
 
-              <div className="flex min-h-24 flex-1 flex-col gap-2 px-2 pb-2">
+              <div className="kanban-scroll flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
                 {items.map((c) => (
                   <article
                     key={c.id}
