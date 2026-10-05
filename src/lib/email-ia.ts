@@ -10,6 +10,10 @@ const MODELE = "claude-sonnet-5-5";
 export const PHRASE_RDV =
   "Je vous propose un diagnostic gratuit de 30 minutes sur place, au jour et à l'heure qui vous conviennent le mieux.";
 
+// Information RGPD (origine des données + droit d'opposition), ajoutée par le code et non par l'IA.
+export const MENTION_RGPD =
+  "—\nVos coordonnées professionnelles proviennent de sources publiques (Google Maps). Vous pouvez vous opposer à tout moment à nos messages en répondant « STOP » à cet email.";
+
 const SYSTEME = `Tu rédiges des emails de prospection B2B pour Eco-Locaux, qui réduit la facture énergétique des commerces de proximité (boulangeries, restaurants, boucheries…) avec des packs de travaux financés par les primes CEE.
 
 Objectif : un email court et percutant, qui donne envie de prendre rendez-vous grâce à des chiffres concrets.
@@ -19,7 +23,7 @@ Règles impératives :
 - N'utilise que les chiffres fournis, arrondis tels quels ; n'invente aucun montant, pourcentage, délai ni témoignage client.
 - Les montants d'aides sont des plafonds : écris « jusqu'à … € de primes CEE », jamais un montant garanti.
 - Corps de 130 mots maximum, phrases courtes, ton sobre et professionnel, sans superlatifs ni points d'exclamation.
-- Structure : salutation (« Bonjour {prénom}, » si un prénom est fourni, sinon « Bonjour, ») ; une phrase sur la facture estimée ; les économies annuelles ; les packs recommandés en liste, un par ligne, précédés de leur emoji ; la phrase de financement ; puis exactement la phrase d'invitation fournie ; enfin « Cordialement, » puis « Eco-Locaux » sur la ligne suivante, sans nom de personne.
+- Structure : salutation (« Bonjour {prénom}, » si un prénom est fourni, sinon « Bonjour, ») ; une phrase sur la facture estimée ; les économies annuelles ; les packs recommandés en liste, un par ligne, précédés de leur emoji ; la phrase de financement ; puis exactement la phrase d'invitation fournie ; enfin « Cordialement, » puis « Eco-Locaux » sur la ligne suivante, sans nom de personne. N'ajoute rien après la signature : la mention RGPD est ajoutée automatiquement.
 - Objets : moins de 70 caractères, avec le montant des économies annuelles, sans nom de commerce.
 - Orthographe et accords irréprochables.`;
 
@@ -97,7 +101,10 @@ export async function genererBrouillon(
       .join("");
     const brouillon = JSON.parse(texte) as BrouillonIA;
     if (!brouillon.corps?.trim()) return null;
-    return { objets: (brouillon.objets ?? []).filter(Boolean).slice(0, 2), corps: brouillon.corps.trim() };
+    return {
+      objets: (brouillon.objets ?? []).filter(Boolean).slice(0, 2),
+      corps: `${brouillon.corps.trim()}\n\n${MENTION_RGPD}`,
+    };
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError) {
       console.error("Génération email IA : limite de débit atteinte");
