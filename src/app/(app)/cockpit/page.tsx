@@ -60,6 +60,9 @@ export default async function CockpitPage() {
 
   const list = prospects ?? [];
   const enCours = list.filter((p) => p.statut_prospect !== "Diagnostic vendu");
+  const ventes = list.filter((p) => p.statut_prospect === "Diagnostic vendu");
+  const caSigneTotal = ventes.reduce((sum, p) => sum + (p.montant_devis ?? 0), 0);
+  const ventesSansMontant = ventes.filter((p) => p.montant_devis == null).length;
   const caPotentielTotal = list.reduce((sum, p) => sum + (p.devis_potentiel ?? 0), 0);
 
   const parCommercial = (commerciaux ?? []).map((c) => {
@@ -69,6 +72,9 @@ export default async function CockpitPage() {
       leadsActifs: leads.filter((p) => p.statut_prospect !== "Diagnostic vendu").length,
       caPotentiel: leads.reduce((sum, p) => sum + (p.devis_potentiel ?? 0), 0),
       devisVendus: leads.filter((p) => p.statut_prospect === "Diagnostic vendu").length,
+      caSigne: leads
+        .filter((p) => p.statut_prospect === "Diagnostic vendu")
+        .reduce((sum, p) => sum + (p.montant_devis ?? 0), 0),
     };
   });
 
@@ -138,7 +144,7 @@ export default async function CockpitPage() {
     <div>
       <h1 className="mb-5 text-xl font-medium">Cockpit direction</h1>
 
-      <div className="mb-6 grid grid-cols-4 gap-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
         <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
           <p className="mb-1 text-xs text-[var(--muted)]">Leads en cours</p>
           <p className="text-2xl font-medium">{enCours.length}</p>
@@ -151,9 +157,18 @@ export default async function CockpitPage() {
         </div>
         <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
           <p className="mb-1 text-xs text-[var(--muted)]">Devis vendus</p>
-          <p className="text-2xl font-medium">
-            {list.filter((p) => p.statut_prospect === "Diagnostic vendu").length}
+          <p className="text-2xl font-medium">{ventes.length}</p>
+        </div>
+        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
+          <p className="mb-1 text-xs text-[var(--muted)]">CA signé</p>
+          <p className="text-2xl font-medium text-[var(--primary-dark)]">
+            {caSigneTotal.toLocaleString("fr-FR")}&nbsp;€
           </p>
+          {ventesSansMontant > 0 ? (
+            <p className="mt-1 text-xs text-[var(--warning)]">
+              {ventesSansMontant} vente{ventesSansMontant > 1 ? "s" : ""} sans montant
+            </p>
+          ) : null}
         </div>
         <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
           <p className="mb-1 text-xs text-[var(--muted)]">Total prospects</p>
@@ -163,21 +178,23 @@ export default async function CockpitPage() {
 
       <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="mb-3 text-base font-medium">Performance par commercial</h2>
-        <div className="grid grid-cols-4 gap-0 border-b border-[var(--border)] pb-2 text-xs text-[var(--muted)]">
+        <div className="grid grid-cols-5 gap-0 border-b border-[var(--border)] pb-2 text-xs text-[var(--muted)]">
           <div>Commercial</div>
           <div>Leads actifs</div>
           <div>CA potentiel</div>
           <div>Devis vendus</div>
+          <div>CA signé</div>
         </div>
-        {parCommercial.map(({ commercial, leadsActifs, caPotentiel, devisVendus }) => (
+        {parCommercial.map(({ commercial, leadsActifs, caPotentiel, devisVendus, caSigne }) => (
           <div
             key={commercial.id}
-            className="grid grid-cols-4 gap-0 border-b border-[var(--border)] py-3 text-sm last:border-0"
+            className="grid grid-cols-5 gap-0 border-b border-[var(--border)] py-3 text-sm last:border-0"
           >
             <div>{commercial.Prénom} {commercial.Nom}</div>
             <div>{leadsActifs}</div>
             <div className="font-medium">{caPotentiel.toLocaleString("fr-FR")} €</div>
             <div>{devisVendus}</div>
+            <div className="font-medium">{caSigne.toLocaleString("fr-FR")} €</div>
           </div>
         ))}
       </div>

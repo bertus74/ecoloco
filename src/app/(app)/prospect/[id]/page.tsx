@@ -11,10 +11,14 @@ import {
   addInteraction,
   changerCommercial,
   changerStatut,
+  enregistrerVente,
+  modifierMontant,
   reporterRelance,
   updateContact,
 } from "./actions";
 import { InlineSelect } from "./inline-select";
+import { MontantEditable } from "./montant-editable";
+import { StatutSelect } from "./statut-select";
 
 const STATUTS = [
   "À valider", "Nouveau", "Contacté", "Intéressé", "RDV planifié", "Diagnostic vendu", "Perdu", "Blacklist",
@@ -140,6 +144,8 @@ export default async function ProspectPage({
   const addInteractionBound = addInteraction.bind(null, id);
   const reporterRelanceBound = reporterRelance.bind(null, id, prospect.nb_reports_relance);
   const changerStatutBound = changerStatut.bind(null, id);
+  const enregistrerVenteBound = enregistrerVente.bind(null, id);
+  const modifierMontantBound = modifierMontant.bind(null, id);
   const changerCommercialBound = changerCommercial.bind(null, id);
 
   return (
@@ -212,9 +218,9 @@ export default async function ProspectPage({
                 </td>
               </tr>
               <tr>
-                <td className="py-1.5 text-[var(--muted)]">Montant devis</td>
+                <td className="py-1.5 text-[var(--muted)]">Montant du contrat</td>
                 <td className="py-1.5 text-right font-medium">
-                  {prospect.montant_devis != null ? `${prospect.montant_devis.toLocaleString("fr-FR")} €` : "—"}
+                  <MontantEditable montant={prospect.montant_devis} onEnregistrer={modifierMontantBound} />
                 </td>
               </tr>
               <tr>
@@ -426,10 +432,13 @@ export default async function ProspectPage({
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-[var(--muted)]">Statut :</span>
-            <InlineSelect
+            <StatutSelect
               defaultValue={prospect.statut_prospect ?? "Nouveau"}
-              options={STATUTS.map((s) => ({ value: s, label: s }))}
-              onChangeValue={changerStatutBound}
+              options={STATUTS}
+              nomProspect={prospect.Nom ?? ""}
+              suggestion={argu.investissement || null}
+              onChangeStatut={changerStatutBound}
+              onVente={enregistrerVenteBound}
             />
           </div>
           {isDg && commerciaux ? (

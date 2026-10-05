@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { NiveauBadge } from "@/components/niveau-badge";
+import { VenteDialog } from "@/components/vente-dialog";
 import type { NiveauScore } from "@/lib/types";
 import { deplacerProspect } from "./actions";
 import { COLONNES_KANBAN, COULEURS_COLONNES } from "./colonnes";
@@ -29,24 +30,31 @@ export function KanbanBoard({
   const [dragId, setDragId] = useState<number | null>(null);
   const [survol, setSurvol] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [vente, setVente] = useState<CarteKanban | null>(null);
   const [, startTransition] = useTransition();
 
-  const deposer = (statut: string, id: number) => {
+  // `montant` : undefined = pas encore demandé (on ouvre la fenêtre « Diagnostic vendu »), null = à saisir plus tard.
+  const deposer = (statut: string, id: number, montant?: number | null) => {
     const carte = cartes.find((c) => c.id === id);
     if (!carte || carte.statut === statut) return;
+    if (statut === "Diagnostic vendu" && montant === undefined) {
+      setVente(carte);
+      return;
+    }
     const ancien = carte.statut;
-    const appliquer = (de: string, vers: string) => {
-      setCartes((cs) => cs.map((c) => (c.id === id ? { ...c, statut: vers } : c)));
+    const ancienMontant = carte.montant;
+    const appliquer = (de: string, vers: string, nouveauMontant: number | null) => {
+      setCartes((cs) => cs.map((c) => (c.id === id ? { ...c, statut: vers, montant: nouveauMontant } : c)));
       setTotaux((t) => ({ ...t, [de]: t[de] - 1, [vers]: t[vers] + 1 }));
     };
 
-    appliquer(ancien, statut); // mise à jour optimiste
+    appliquer(ancien, statut, montant ?? ancienMontant); // mise à jour optimiste
     setErreur(null);
     startTransition(async () => {
       try {
-        await deplacerProspect(id, statut);
+        await deplacerProspect(id, statut, montant);
       } catch {
-        appliquer(statut, ancien);
+        appliquer(statut, ancien, ancienMontant);
         setErreur(`Impossible de déplacer « ${carte.nom} » — statut inchangé.`);
       }
     });
@@ -58,6 +66,16 @@ export function KanbanBoard({
 
   return (
     <>
+      {vente ? (
+        <VenteDialog
+          nomProspect={vente.nom}
+          onAnnuler={() => setVente(null)}
+          onConfirmer={(montant) => {
+            deposer("Diagnostic vendu", vente.id, montant);
+            setVente(null);
+          }}
+        />
+      ) : null}
       {erreur ? (
         <p className="mb-3 rounded-md bg-[var(--danger-light)] px-3 py-2 text-sm text-[var(--danger)]">{erreur}</p>
       ) : null}

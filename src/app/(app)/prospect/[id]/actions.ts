@@ -149,3 +149,48 @@ export async function qualifierProspect(prospectId: string, q: Qualification) {
 
   rafraichirVues();
 }
+
+function montantValide(montant: number | null): number | null {
+  if (montant == null) return null;
+  if (!Number.isFinite(montant) || montant <= 0 || montant > 10_000_000) throw new Error("Montant invalide");
+  return Math.round(montant * 100) / 100;
+}
+
+/** Passage en « Diagnostic vendu » avec le montant du contrat (€ HT) ; `null` = montant à saisir plus tard. */
+export async function enregistrerVente(prospectId: string, montant: number | null) {
+  const m = montantValide(montant);
+  const supabase = await createClient();
+  const commercialId = await getCurrentCommercialId(supabase);
+
+  const { data, error } = await supabase
+    .from("commerc")
+    .update(m != null ? { statut_prospect: "Diagnostic vendu", montant_devis: m } : { statut_prospect: "Diagnostic vendu" })
+    .eq("id", prospectId)
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("Prospect introuvable ou non autorisé");
+
+  await supabase.from("interactions").insert({
+    commerc_id: Number(prospectId),
+    commercial_id: commercialId,
+    type_interaction: "Note",
+    note: m != null ? `Diagnostic vendu — contrat de ${m.toLocaleString("fr-FR")} € HT` : "Diagnostic vendu — montant à saisir",
+    date_interaction: new Date().toISOString(),
+  });
+
+  rafraichirVues();
+}
+
+/** Corrige ou renseigne le montant du contrat après coup. */
+export async function modifierMontant(prospectId: string, montant: number | null) {
+  const m = montantValide(montant);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("commerc")
+    .update({ montant_devis: m })
+    .eq("id", prospectId)
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("Prospect introuvable ou non autorisé");
+  rafraichirVues();
+}
