@@ -38,7 +38,7 @@ export async function updateSession(request: NextRequest) {
 
   // Pages accessibles sans être connecté ; les deux premières renvoient vers l'app si on l'est déjà.
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/mot-de-passe-oublie");
-  const isPublicRoute = isAuthRoute || pathname.startsWith("/auth/callback") || pathname.startsWith("/auth/confirm");
+  const isPublicRoute = isAuthRoute || pathname.startsWith("/auth/callback") || pathname.startsWith("/auth/confirm") || pathname.startsWith("/auth/lien");
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

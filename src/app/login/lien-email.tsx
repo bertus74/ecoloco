@@ -11,7 +11,11 @@ import { createClient } from "@/lib/supabase/client";
 export function LienEmail() {
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
-    if (!hash) return;
+    if (!hash) {
+      // Page d'arrivée ouverte sans lien (adresse saisie à la main, lien déjà utilisé) : retour à la connexion.
+      if (window.location.pathname === "/auth/lien") window.location.replace("/login");
+      return;
+    }
     const params = new URLSearchParams(hash);
 
     if (params.get("error")) {
