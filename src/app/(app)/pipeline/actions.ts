@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { rafraichirVues } from "@/lib/rafraichir";
 import { createClient } from "@/lib/supabase/server";
 
 export async function validerProspect(id: number) {
@@ -10,8 +10,7 @@ export async function validerProspect(id: number) {
     .update({ statut_prospect: "Nouveau", valide_le: new Date().toISOString() })
     .eq("id", id)
     .eq("statut_prospect", "À valider");
-  revalidatePath("/pipeline");
-  revalidatePath("/prospects");
+  rafraichirVues();
 }
 
 export async function supprimerScrappe(id: number) {
@@ -21,7 +20,7 @@ export async function supprimerScrappe(id: number) {
     .delete()
     .eq("id", id)
     .eq("statut_prospect", "À valider");
-  revalidatePath("/pipeline");
+  rafraichirVues();
 }
 
 export async function validerSelection(ids: number[]) {
@@ -32,8 +31,7 @@ export async function validerSelection(ids: number[]) {
     .update({ statut_prospect: "Nouveau", valide_le: new Date().toISOString() })
     .in("id", ids)
     .eq("statut_prospect", "À valider");
-  revalidatePath("/pipeline");
-  revalidatePath("/prospects");
+  rafraichirVues();
 }
 
 export async function supprimerSelection(ids: number[]) {
@@ -44,5 +42,5 @@ export async function supprimerSelection(ids: number[]) {
     .delete()
     .in("id", ids)
     .eq("statut_prospect", "À valider");
-  revalidatePath("/pipeline");
+  rafraichirVues();
 }

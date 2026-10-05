@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { rafraichirVues } from "@/lib/rafraichir";
 import { createClient } from "@/lib/supabase/server";
 import { COLONNES_KANBAN } from "./colonnes";
 
@@ -15,6 +15,5 @@ export async function deplacerProspect(prospectId: number, statut: string) {
     .select("id");
   if (error) throw new Error(error.message);
   if (!data?.length) throw new Error("Prospect introuvable ou non autorisé");
-  revalidatePath("/kanban");
-  revalidatePath(`/prospect/${prospectId}`);
+  rafraichirVues();
 }

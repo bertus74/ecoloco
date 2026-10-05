@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { rafraichirVues } from "@/lib/rafraichir";
 import { createClient } from "@/lib/supabase/server";
 import { genererBrouillon } from "@/lib/email-ia";
 import type { Commerc, Commercial } from "@/lib/types";
@@ -57,5 +57,5 @@ export async function enregistrerEmailValide(prospectId: string, objet: string) 
     .eq("id", prospectId)
     .eq("statut_prospect", "Nouveau");
 
-  revalidatePath(`/prospect/${prospectId}`);
+  rafraichirVues();
 }

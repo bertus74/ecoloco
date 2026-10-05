@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { rafraichirVues } from "@/lib/rafraichir";
 import { createClient } from "@/lib/supabase/server";
 
 async function getCurrentCommercialId(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -25,7 +25,7 @@ export async function updateContact(prospectId: string, formData: FormData) {
       URL: String(formData.get("url") ?? "") || null,
     })
     .eq("id", prospectId);
-  revalidatePath(`/prospect/${prospectId}`);
+  rafraichirVues();
 }
 
 export async function addInteraction(prospectId: string, formData: FormData) {
@@ -52,7 +52,7 @@ export async function addInteraction(prospectId: string, formData: FormData) {
     })
     .eq("id", prospectId);
 
-  revalidatePath(`/prospect/${prospectId}`);
+  rafraichirVues();
 }
 
 export async function reporterRelance(prospectId: string, nbReportsActuel: number) {
@@ -70,13 +70,13 @@ export async function reporterRelance(prospectId: string, nbReportsActuel: numbe
     })
     .eq("id", prospectId);
 
-  revalidatePath(`/prospect/${prospectId}`);
+  rafraichirVues();
 }
 
 export async function changerStatut(prospectId: string, statut: string) {
   const supabase = await createClient();
   await supabase.from("commerc").update({ statut_prospect: statut }).eq("id", prospectId);
-  revalidatePath(`/prospect/${prospectId}`);
+  rafraichirVues();
 }
 
 export async function changerCommercial(prospectId: string, commercialId: string) {
@@ -85,8 +85,7 @@ export async function changerCommercial(prospectId: string, commercialId: string
     .from("commerc")
     .update({ commercial_id: Number(commercialId) })
     .eq("id", prospectId);
-  revalidatePath(`/prospect/${prospectId}`);
-  revalidatePath("/pipeline");
+  rafraichirVues();
 }
 
 export interface Qualification {
@@ -148,7 +147,5 @@ export async function qualifierProspect(prospectId: string, q: Qualification) {
     date_interaction: maintenant,
   });
 
-  revalidatePath(`/prospect/${prospectId}`);
-  revalidatePath("/leads");
-  revalidatePath("/aujourdhui");
+  rafraichirVues();
 }

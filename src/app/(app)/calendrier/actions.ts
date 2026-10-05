@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { rafraichirVues } from "@/lib/rafraichir";
 import { createClient } from "@/lib/supabase/server";
 import { parisVersIso } from "@/lib/heure-paris";
 
@@ -42,13 +42,13 @@ export async function creerRdv(formData: FormData) {
     .update({ statut_prospect: "RDV planifié" })
     .eq("id", commerc_id);
 
-  revalidatePath("/calendrier");
+  rafraichirVues();
 }
 
 export async function changerStatutRdv(rdvId: number, statut: string) {
   const supabase = await createClient();
   await supabase.from("rdv").update({ statut }).eq("id", rdvId);
-  revalidatePath("/calendrier");
+  rafraichirVues();
 }
 
 export async function modifierRdv(rdvId: number, formData: FormData) {
@@ -76,13 +76,13 @@ export async function modifierRdv(rdvId: number, formData: FormData) {
     })
     .eq("id", rdvId);
 
-  revalidatePath("/calendrier");
+  rafraichirVues();
 }
 
 export async function supprimerRdv(rdvId: number) {
   const supabase = await createClient();
   await supabase.from("rdv").delete().eq("id", rdvId);
-  revalidatePath("/calendrier");
+  rafraichirVues();
 }
 
 // Recherche de prospects pour le formulaire de RDV (scope RLS : les siens, ou tous pour la DG).
