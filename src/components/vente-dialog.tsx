@@ -18,7 +18,7 @@ export function VenteDialog({
 }: {
   nomProspect: string;
   suggestion?: number | null;
-  /** Catalogue des packs proposés ; `packsInitiaux` = ids cochés au départ (packs retenus à la qualification). */
+  /** Catalogue des packs proposés (leur `prix` alimente le montant proposé) ; `packsInitiaux` = ids cochés au départ (packs retenus à la qualification). */
   packs?: Pack[];
   packsInitiaux?: string[];
   enCours?: boolean;
@@ -26,9 +26,18 @@ export function VenteDialog({
   onConfirmer: (montant: number | null, packsVendus: string[]) => void;
   onAnnuler: () => void;
 }) {
-  const [saisie, setSaisie] = useState(suggestion ? String(Math.round(suggestion)) : "");
+  // Total catalogue des packs cochés ; à défaut de packs, la suggestion de l'argumentaire.
+  const totalPacks = (ids: string[]) => packs.filter((k) => ids.includes(k.id)).reduce((s, k) => s + (k.prix ?? 0), 0);
+  const proposition = (ids: string[]) => totalPacks(ids) || suggestion || 0;
   const [choisis, setChoisis] = useState<string[]>(packsInitiaux);
-  const basculer = (id: string) => setChoisis((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+  const [saisie, setSaisie] = useState(proposition(packsInitiaux) ? String(Math.round(proposition(packsInitiaux))) : "");
+  // Tant que le montant n'est pas modifié à la main, il suit les packs cochés.
+  const [modifieAMain, setModifieAMain] = useState(false);
+  const basculer = (id: string) => {
+    const suite = choisis.includes(id) ? choisis.filter((x) => x !== id) : [...choisis, id];
+    setChoisis(suite);
+    if (!modifieAMain) setSaisie(proposition(suite) ? String(Math.round(proposition(suite))) : "");
+  };
   const montant = Number(saisie.replace(/\s/g, "").replace(",", "."));
   const valide = saisie.trim() !== "" && Number.isFinite(montant) && montant > 0 && montant <= 10_000_000;
 
@@ -62,12 +71,17 @@ export function VenteDialog({
           inputMode="decimal"
           autoFocus
           value={saisie}
-          onChange={(e) => setSaisie(e.target.value)}
+          onChange={(e) => {
+            setSaisie(e.target.value);
+            setModifieAMain(true);
+          }}
           placeholder="ex. 5 800"
           className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm tabular-nums outline-none focus:border-[var(--primary)]"
         />
-        {suggestion ? (
-          <p className="mt-1 text-xs text-[var(--muted)]">Pré-rempli avec l&apos;investissement estimé de l&apos;argumentaire.</p>
+        {!modifieAMain && proposition(choisis) ? (
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {totalPacks(choisis) ? "Total des packs cochés (prix catalogue) ; modifiable." : "Investissement estimé de l'argumentaire ; modifiable."}
+          </p>
         ) : null}
 
         {packs.length > 0 ? (
