@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Commerc, Commercial, Interaction, Pack, Rdv } from "@/lib/types";
 import { SECTEURS, secteurDe } from "@/lib/secteurs";
 import { CockpitVue } from "./vue";
+import { Purge } from "./purge";
 
 const NB_SEMAINES = 8;
 
@@ -57,6 +58,15 @@ export default async function CockpitPage() {
     .from("rdv")
     .select("commercial_id, statut, created_at")
     .returns<Pick<Rdv, "commercial_id" | "statut" | "created_at">[]>();
+
+  const compter = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
+  const [totalBase, nbPerdus, nbNouveauxSansContact] = await Promise.all([
+    compter(supabase.from("commerc").select("id", { count: "exact", head: true })),
+    compter(supabase.from("commerc").select("id", { count: "exact", head: true }).eq("statut_prospect", "Perdu")),
+    compter(
+      supabase.from("commerc").select("id", { count: "exact", head: true }).eq("statut_prospect", "Nouveau").is("derniere_interaction", null),
+    ),
+  ]);
 
   const list = prospects ?? [];
   const enCours = list.filter((p) => p.statut_prospect !== "Diagnostic vendu");
@@ -149,6 +159,7 @@ export default async function CockpitPage() {
   });
 
   return (
+    <>
     <CockpitVue
       dateLongue={dateLongue}
       nbEnCours={enCours.length}
@@ -179,5 +190,7 @@ export default async function CockpitPage() {
       statutLabels={statutLabelsAvecDonnees}
       statutCounts={statutCountsAvecDonnees}
     />
+    <Purge total={totalBase} nombres={{ perdus: nbPerdus, nouveaux_sans_contact: nbNouveauxSansContact }} />
+    </>
   );
 }
