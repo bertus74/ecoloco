@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Commerc, Commercial, Interaction, Pack, Rdv } from "@/lib/types";
 import { SECTEURS, secteurDe } from "@/lib/secteurs";
-import { BarresGroupees, Camembert, COULEURS_PACKS, Courbes, SERIES_COULEURS } from "./charts";
+import { CockpitVue } from "./vue";
 
 const NB_SEMAINES = 8;
 
@@ -140,158 +140,43 @@ export default async function CockpitPage() {
   const statutLabelsAvecDonnees = STATUTS_ORDRE.filter((_, i) => statutCounts[i] > 0);
   const statutCountsAvecDonnees = statutCounts.filter((c) => c > 0);
 
+  const dateLongue = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Paris",
+  });
+
   return (
-    <div>
-      <h1 className="mb-5 text-xl font-medium">Cockpit direction</h1>
-
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
-          <p className="mb-1 text-xs text-[var(--muted)]">Leads en cours</p>
-          <p className="text-2xl font-medium">{enCours.length}</p>
-        </div>
-        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
-          <p className="mb-1 text-xs text-[var(--muted)]">CA potentiel</p>
-          <p className="text-2xl font-medium">
-            {caPotentielTotal.toLocaleString("fr-FR")}&nbsp;€
-          </p>
-        </div>
-        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
-          <p className="mb-1 text-xs text-[var(--muted)]">Devis vendus</p>
-          <p className="text-2xl font-medium">{ventes.length}</p>
-        </div>
-        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
-          <p className="mb-1 text-xs text-[var(--muted)]">CA signé</p>
-          <p className="text-2xl font-medium text-[var(--primary-dark)]">
-            {caSigneTotal.toLocaleString("fr-FR")}&nbsp;€
-          </p>
-          {ventesSansMontant > 0 ? (
-            <p className="mt-1 text-xs text-[var(--warning)]">
-              {ventesSansMontant} vente{ventesSansMontant > 1 ? "s" : ""} sans montant
-            </p>
-          ) : null}
-        </div>
-        <div className="rounded-md bg-[var(--surface)] border border-[var(--border)] p-4">
-          <p className="mb-1 text-xs text-[var(--muted)]">Total prospects</p>
-          <p className="text-2xl font-medium">{list.length}</p>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-        <h2 className="mb-3 text-base font-medium">Performance par commercial</h2>
-        <div className="grid grid-cols-5 gap-0 border-b border-[var(--border)] pb-2 text-xs text-[var(--muted)]">
-          <div>Commercial</div>
-          <div>Leads actifs</div>
-          <div>CA potentiel</div>
-          <div>Devis vendus</div>
-          <div>CA signé</div>
-        </div>
-        {parCommercial.map(({ commercial, leadsActifs, caPotentiel, devisVendus, caSigne }) => (
-          <div
-            key={commercial.id}
-            className="grid grid-cols-5 gap-0 border-b border-[var(--border)] py-3 text-sm last:border-0"
-          >
-            <div>{commercial.Prénom} {commercial.Nom}</div>
-            <div>{leadsActifs}</div>
-            <div className="font-medium">{caPotentiel.toLocaleString("fr-FR")} €</div>
-            <div>{devisVendus}</div>
-            <div className="font-medium">{caSigne.toLocaleString("fr-FR")} €</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-        <h2 className="text-base font-medium">KPIs par commercial</h2>
-        <p className="mb-3 text-xs text-[var(--muted)]">Prospects contactés, démarches, RDV et diagnostics vendus</p>
-        <BarresGroupees
-          ariaLabel="KPIs par commercial : contactés, démarches, RDV, vendus"
-          labels={kpiCommerciaux.map((k) => k.nom)}
-          series={[
-            { label: "Contactés", data: kpiCommerciaux.map((k) => k.contactes), color: SERIES_COULEURS[0] },
-            { label: "Démarches", data: kpiCommerciaux.map((k) => k.interactions), color: SERIES_COULEURS[1] },
-            { label: "RDV", data: kpiCommerciaux.map((k) => k.rdv), color: SERIES_COULEURS[2] },
-            { label: "Vendus", data: kpiCommerciaux.map((k) => k.vendus), color: SERIES_COULEURS[3] },
-          ]}
-        />
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-          <h2 className="text-base font-medium">Pipeline par semaine</h2>
-          <p className="mb-3 text-xs text-[var(--muted)]">{NB_SEMAINES} dernières semaines, semaine du lundi</p>
-          <Courbes
-            ariaLabel="Évolution hebdomadaire des prospects validés, démarches et RDV"
-            labels={libellesSemaines}
-            series={[
-              { label: "Prospects validés", data: parSemaine((valides ?? []).map((v) => v.valide_le)), color: SERIES_COULEURS[0] },
-              { label: "Démarches", data: parSemaine((interactions ?? []).map((i) => i.date_interaction ?? i.created_at)), color: SERIES_COULEURS[1] },
-              { label: "RDV pris", data: parSemaine((rdvs ?? []).map((r) => r.created_at)), color: SERIES_COULEURS[2] },
-            ]}
-          />
-        </div>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-          <h2 className="text-base font-medium">Répartition par secteur</h2>
-          <p className="mb-3 text-xs text-[var(--muted)]">Tous prospects validés, dont leads chauds</p>
-          <BarresGroupees
-            horizontal
-            ariaLabel="Nombre de prospects et de leads chauds par secteur"
-            labels={secteursTries.map(([label]) => label)}
-            series={[
-              { label: "Prospects", data: secteursTries.map(([, v]) => v.total), color: SERIES_COULEURS[0] },
-              { label: "Leads chauds", data: secteursTries.map(([, v]) => v.chauds), color: SERIES_COULEURS[3] },
-            ]}
-          />
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-          <h2 className="text-base font-medium">CA par pack</h2>
-          <p className="mb-3 text-xs text-[var(--muted)]">
-            Diagnostics vendus, montant réparti entre les packs retenus à la qualification
-          </p>
-          {lignesPacks.length === 0 ? (
-            <div className="flex h-60 items-center justify-center rounded-md bg-[var(--background)] text-sm text-[var(--muted)]">
-              Aucun diagnostic vendu avec un montant renseigné pour l&apos;instant.
-            </div>
-          ) : (
-            <div className="grid grid-cols-[1fr_1.1fr] items-center gap-4">
-              <Camembert
-                ariaLabel="Répartition du CA signé par pack"
-                labels={lignesPacks.map((l) => l.label)}
-                data={lignesPacks.map((l) => l.ca)}
-                couleurs={lignesPacks.map((l) => COULEURS_PACKS[l.id] ?? "#9CA3AF")}
-              />
-              <table className="w-full text-sm">
-                <tbody>
-                  {lignesPacks.map((l) => (
-                    <tr key={l.id} className="border-b border-[var(--border)] last:border-0">
-                      <td className="py-1.5">
-                        <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: COULEURS_PACKS[l.id] ?? "#9CA3AF" }} />
-                        {l.label}
-                      </td>
-                      <td className="py-1.5 text-right tabular-nums">{l.ca.toLocaleString("fr-FR")}&nbsp;€</td>
-                      <td className="w-12 py-1.5 text-right tabular-nums text-[var(--muted)]">
-                        {Math.round((l.ca / caTotalPacks) * 100)}&nbsp;%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-        <h2 className="mb-3 text-base font-medium">Pipeline par statut</h2>
-        <BarresGroupees
-          horizontal
-          hauteur={220}
-          ariaLabel="Répartition des prospects par statut du pipeline"
-          labels={statutLabelsAvecDonnees}
-          series={[{ label: "Prospects", data: statutCountsAvecDonnees, color: SERIES_COULEURS[0] }]}
-        />
-      </div>
-      </div>
-    </div>
+    <CockpitVue
+      dateLongue={dateLongue}
+      nbEnCours={enCours.length}
+      nbProspects={list.length}
+      nbVentes={ventes.length}
+      caPotentielTotal={caPotentielTotal}
+      caSigneTotal={caSigneTotal}
+      ventesSansMontant={ventesSansMontant}
+      parCommercial={parCommercial.map((c) => ({
+        id: c.commercial.id,
+        nom: `${c.commercial.Prénom ?? ""} ${c.commercial.Nom ?? ""}`.trim(),
+        initiales: `${(c.commercial.Prénom ?? "")[0] ?? ""}${(c.commercial.Nom ?? "")[0] ?? ""}`.toUpperCase(),
+        leadsActifs: c.leadsActifs,
+        caPotentiel: c.caPotentiel,
+        devisVendus: c.devisVendus,
+        caSigne: c.caSigne,
+      }))}
+      kpiCommerciaux={kpiCommerciaux}
+      libellesSemaines={libellesSemaines}
+      semaines={{
+        valides: parSemaine((valides ?? []).map((v) => v.valide_le)),
+        demarches: parSemaine((interactions ?? []).map((i) => i.date_interaction ?? i.created_at)),
+        rdv: parSemaine((rdvs ?? []).map((r) => r.created_at)),
+      }}
+      secteurs={secteursTries}
+      lignesPacks={lignesPacks}
+      caTotalPacks={caTotalPacks}
+      statutLabels={statutLabelsAvecDonnees}
+      statutCounts={statutCountsAvecDonnees}
+    />
   );
 }
