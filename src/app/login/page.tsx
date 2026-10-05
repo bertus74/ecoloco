@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { login } from "./actions";
+import { LienEmail } from "./lien-email";
 
 export default async function LoginPage({
   searchParams,
@@ -10,6 +11,7 @@ export default async function LoginPage({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
+      <LienEmail />
       <div className="w-full max-w-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-sm">
         <h1 className="mb-1 text-xl font-medium text-[var(--foreground)]">Eco-Locaux</h1>
         <p className="mb-6 text-sm text-[var(--muted)]">Connexion à votre espace</p>
