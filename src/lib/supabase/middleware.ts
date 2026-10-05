@@ -23,11 +23,24 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
+  const { pathname, searchParams } = request.nextUrl;
+
+  // Si l'URL de retour n'est pas autorisée côté Supabase, le lien email renvoie sur la racine avec ?code=… :
+  // on le fait passer par la route qui échange le code contre une session.
+  if (searchParams.has("code") && pathname !== "/auth/callback") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    if (!url.searchParams.has("next")) url.searchParams.set("next", "/nouveau-mot-de-passe");
+    return NextResponse.redirect(url);
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
+  // Pages accessibles sans être connecté ; les deux premières renvoient vers l'app si on l'est déjà.
+  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/mot-de-passe-oublie");
+  const isPublicRoute = isAuthRoute || pathname.startsWith("/auth/callback");
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

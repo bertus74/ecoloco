@@ -65,6 +65,9 @@ export default async function AppLayout({
               <span className="text-sm text-[var(--muted)]">
                 {profile.Prénom} {profile.Nom}
               </span>
+              <Link href="/nouveau-mot-de-passe" className="text-xs text-[var(--muted)] underline">
+                Mot de passe
+              </Link>
             </div>
           ) : null}
           <SignOutButton />
