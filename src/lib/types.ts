@@ -52,6 +52,14 @@ export interface Commerc {
   prochaine_etape: string | null;
   rgpd_accord_le: string | null;
   qualifie_le: string | null;
+  /** DPE tertiaire ADEME trouvé à l'adresse (WF-08). null = pas encore cherché. */
+  dpe_statut: "trouvé" | "vierge" | "aucun" | "adresse imprécise" | null;
+  dpe_numero: string | null;
+  dpe_etiquette: "A" | "B" | "C" | "D" | "E" | "F" | "G" | null;
+  /** Énergie primaire, kWhep/m²/an. */
+  dpe_conso_ep_m2: number | null;
+  dpe_periode_construction: string | null;
+  dpe_date: string | null;
 }
 
 export interface Commercial {

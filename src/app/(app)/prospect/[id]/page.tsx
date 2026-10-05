@@ -25,8 +25,22 @@ interface ScoreDetail {
   note?: number;
   surface?: number;
   avis?: number;
+  /** Bonus de l'étiquette DPE (algo v2) : G +10 … A −5. */
+  dpe?: number;
+  etiquette_dpe?: string | null;
   categorie?: string;
 }
+
+// Couleurs officielles de l'échelle DPE.
+const COULEURS_DPE: Record<string, string> = {
+  A: "#009C6D", B: "#52B153", C: "#A5CC74", D: "#F4E70F", E: "#F0B40F", F: "#EB8235", G: "#D7221F",
+};
+
+const LIBELLES_STATUT_DPE: Record<string, string> = {
+  vierge: "DPE sans étiquette",
+  aucun: "Aucun DPE tertiaire à cette adresse",
+  "adresse imprécise": "Adresse trop imprécise pour chercher",
+};
 
 function joursSans(date: string | null) {
   if (!date) return null;
@@ -210,6 +224,12 @@ export default async function ProspectPage({
                 </td>
               </tr>
               <tr>
+                <td className="py-1.5 align-top text-[var(--muted)]">DPE tertiaire (ADEME)</td>
+                <td className="py-1.5 text-right font-medium">
+                  <DpeResume prospect={prospect} />
+                </td>
+              </tr>
+              <tr>
                 <td className="py-1.5 text-[var(--muted)]">Note Google</td>
                 <td className="py-1.5 text-right font-medium">
                   {prospect.note_google ?? "—"} ({prospect.Nbre_Avis ?? 0} avis)
@@ -227,8 +247,16 @@ export default async function ProspectPage({
               <ScoreBarre label="Note Google" valeur={detail.note} max={20} />
               <ScoreBarre label="Surface" valeur={detail.surface} max={25} />
               <ScoreBarre label="Nombre d'avis" valeur={detail.avis} max={15} />
+              {detail.dpe ? (
+                <div className="flex justify-between">
+                  <span className="text-[var(--muted)]">Bonus DPE (étiquette {detail.etiquette_dpe})</span>
+                  <span className={`font-medium tabular-nums ${detail.dpe > 0 ? "text-[var(--danger)]" : "text-[var(--primary)]"}`}>
+                    {detail.dpe > 0 ? `+${detail.dpe}` : detail.dpe}
+                  </span>
+                </div>
+              ) : null}
               <p className="border-t border-[var(--border)] pt-2 text-xs text-[var(--muted)]">
-                Calcul WF-04 — type 40 + note 20 + surface 25 + avis 15
+                Calcul WF-04 — type 40 + note 20 + surface 25 + avis 15, bonus DPE de −5 (A) à +10 (G)
               </p>
             </div>
           ) : (
@@ -512,6 +540,37 @@ export default async function ProspectPage({
           Générer l&apos;email
         </Link>
       </div>
+    </div>
+  );
+}
+
+function DpeResume({
+  prospect,
+}: {
+  prospect: Pick<Commerc, "dpe_statut" | "dpe_etiquette" | "dpe_conso_ep_m2" | "dpe_periode_construction" | "dpe_date">;
+}) {
+  if (!prospect.dpe_statut) return <span className="text-[var(--muted)]">Pas encore vérifié</span>;
+  const details = [
+    prospect.dpe_conso_ep_m2 != null ? `${Math.round(prospect.dpe_conso_ep_m2)} kWhep/m²/an` : null,
+    prospect.dpe_periode_construction ? `construit ${prospect.dpe_periode_construction}` : null,
+    prospect.dpe_date ? `DPE du ${new Date(prospect.dpe_date).toLocaleDateString("fr-FR")}` : null,
+  ].filter(Boolean);
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      {prospect.dpe_etiquette ? (
+        <span
+          className="rounded px-2 py-0.5 text-xs font-semibold"
+          style={{
+            background: COULEURS_DPE[prospect.dpe_etiquette],
+            color: ["C", "D"].includes(prospect.dpe_etiquette) ? "#1f2937" : "#fff",
+          }}
+        >
+          Étiquette {prospect.dpe_etiquette}
+        </span>
+      ) : (
+        <span className="text-[var(--muted)]">{LIBELLES_STATUT_DPE[prospect.dpe_statut] ?? prospect.dpe_statut}</span>
+      )}
+      {details.length ? <span className="text-xs font-normal text-[var(--muted)]">{details.join(" · ")}</span> : null}
     </div>
   );
 }
