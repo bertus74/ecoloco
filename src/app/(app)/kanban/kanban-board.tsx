@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { NiveauBadge } from "@/components/niveau-badge";
 import { VenteDialog } from "@/components/vente-dialog";
-import type { NiveauScore } from "@/lib/types";
+import type { NiveauScore, Pack } from "@/lib/types";
 import { deplacerProspect } from "./actions";
 import { COLONNES_KANBAN, COULEURS_COLONNES } from "./colonnes";
 
@@ -16,14 +16,18 @@ export interface CarteKanban {
   niveau: NiveauScore | null;
   statut: string;
   montant: number | null;
+  /** Packs cochés par défaut à la vente (déjà vendus, sinon retenus à la qualification). */
+  packsInitiaux: string[];
 }
 
 export function KanbanBoard({
   cartesInitiales,
   totauxInitiaux,
+  packs,
 }: {
   cartesInitiales: CarteKanban[];
   totauxInitiaux: Record<string, number>;
+  packs: Pack[];
 }) {
   const [cartes, setCartes] = useState(cartesInitiales);
   const [totaux, setTotaux] = useState(totauxInitiaux);
@@ -34,7 +38,7 @@ export function KanbanBoard({
   const [, startTransition] = useTransition();
 
   // `montant` : undefined = pas encore demandé (on ouvre la fenêtre « Diagnostic vendu »), null = à saisir plus tard.
-  const deposer = (statut: string, id: number, montant?: number | null) => {
+  const deposer = (statut: string, id: number, montant?: number | null, packsVendus?: string[]) => {
     const carte = cartes.find((c) => c.id === id);
     if (!carte || carte.statut === statut) return;
     if (statut === "Diagnostic vendu" && montant === undefined) {
@@ -44,7 +48,7 @@ export function KanbanBoard({
     const ancien = carte.statut;
     const ancienMontant = carte.montant;
     const appliquer = (de: string, vers: string, nouveauMontant: number | null) => {
-      setCartes((cs) => cs.map((c) => (c.id === id ? { ...c, statut: vers, montant: nouveauMontant } : c)));
+      setCartes((cs) => cs.map((c) => (c.id === id ? { ...c, statut: vers, montant: nouveauMontant, packsInitiaux: packsVendus ?? c.packsInitiaux } : c)));
       setTotaux((t) => ({ ...t, [de]: t[de] - 1, [vers]: t[vers] + 1 }));
     };
 
@@ -52,7 +56,7 @@ export function KanbanBoard({
     setErreur(null);
     startTransition(async () => {
       try {
-        await deplacerProspect(id, statut, montant);
+        await deplacerProspect(id, statut, montant, packsVendus);
       } catch {
         appliquer(statut, ancien, ancienMontant);
         setErreur(`Impossible de déplacer « ${carte.nom} » — statut inchangé.`);
@@ -69,9 +73,11 @@ export function KanbanBoard({
       {vente ? (
         <VenteDialog
           nomProspect={vente.nom}
+          packs={packs}
+          packsInitiaux={vente.packsInitiaux}
           onAnnuler={() => setVente(null)}
-          onConfirmer={(montant) => {
-            deposer("Diagnostic vendu", vente.id, montant);
+          onConfirmer={(montant, packsVendus) => {
+            deposer("Diagnostic vendu", vente.id, montant, packsVendus);
             setVente(null);
           }}
         />

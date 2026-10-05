@@ -437,6 +437,8 @@ export default async function ProspectPage({
               options={STATUTS}
               nomProspect={prospect.Nom ?? ""}
               suggestion={argu.investissement || null}
+              packs={tousPacks ?? []}
+              packsInitiaux={prospect.packs_vendus?.length ? prospect.packs_vendus : packsAffiches.map((k) => k.id)}
               onChangeStatut={changerStatutBound}
               onVente={enregistrerVenteBound}
             />

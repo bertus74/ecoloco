@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Commerc } from "@/lib/types";
+import type { Commerc, Pack } from "@/lib/types";
 import { niveauAffiche } from "@/lib/packs";
 import { COLONNES_KANBAN } from "./colonnes";
 import { KanbanBoard, type CarteKanban } from "./kanban-board";
@@ -12,10 +12,11 @@ export default async function KanbanPage() {
 
   const { data } = await supabase
     .from("commerc")
-    .select("id, Nom, Ville, Score_Energ, Niveau, niveau_qualifie, statut_prospect, montant_devis")
+    .select("id, Nom, Ville, Score_Energ, Niveau, niveau_qualifie, statut_prospect, montant_devis, packs_pertinents, packs_vendus")
     .in("statut_prospect", COLONNES_KANBAN)
     .order("Score_Energ", { ascending: false, nullsFirst: false })
-    .returns<Pick<Commerc, "id" | "Nom" | "Ville" | "Score_Energ" | "Niveau" | "niveau_qualifie" | "statut_prospect" | "montant_devis">[]>();
+    .returns<Pick<Commerc, "id" | "Nom" | "Ville" | "Score_Energ" | "Niveau" | "niveau_qualifie" | "statut_prospect" | "montant_devis" | "packs_pertinents" | "packs_vendus">[]>();
+  const { data: packs } = await supabase.from("packs").select("*").order("ordre").returns<Pack[]>();
 
   const tous = data ?? [];
   const totaux = Object.fromEntries(
@@ -31,6 +32,7 @@ export default async function KanbanPage() {
     niveau: niveauAffiche(p),
     statut: p.statut_prospect ?? "Nouveau",
     montant: p.montant_devis,
+    packsInitiaux: p.packs_vendus?.length ? p.packs_vendus : (p.packs_pertinents ?? []),
   }));
 
   return (
@@ -42,7 +44,7 @@ export default async function KanbanPage() {
           {MAX_PAR_COLONNE} prospects, les mieux scorés.
         </p>
       </div>
-      <KanbanBoard cartesInitiales={cartes} totauxInitiaux={totaux} />
+      <KanbanBoard cartesInitiales={cartes} totauxInitiaux={totaux} packs={packs ?? []} />
     </div>
   );
 }

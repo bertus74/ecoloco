@@ -156,15 +156,16 @@ function montantValide(montant: number | null): number | null {
   return Math.round(montant * 100) / 100;
 }
 
-/** Passage en « Diagnostic vendu » avec le montant du contrat (€ HT) ; `null` = montant à saisir plus tard. */
-export async function enregistrerVente(prospectId: string, montant: number | null) {
+/** Passage en « Diagnostic vendu » avec le montant du contrat (€ HT) et les packs vendus ; `null` = montant à saisir plus tard. */
+export async function enregistrerVente(prospectId: string, montant: number | null, packsVendus: string[] = []) {
   const m = montantValide(montant);
+  const packs = [...new Set(packsVendus)].filter((x) => typeof x === "string" && x.length <= 50);
   const supabase = await createClient();
   const commercialId = await getCurrentCommercialId(supabase);
 
   const { data, error } = await supabase
     .from("commerc")
-    .update(m != null ? { statut_prospect: "Diagnostic vendu", montant_devis: m } : { statut_prospect: "Diagnostic vendu" })
+    .update({ statut_prospect: "Diagnostic vendu", packs_vendus: packs, ...(m != null ? { montant_devis: m } : {}) })
     .eq("id", prospectId)
     .select("id");
   if (error) throw new Error(error.message);

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { VenteDialog } from "@/components/vente-dialog";
+import type { Pack } from "@/lib/types";
 
 /** Sélecteur de statut : le passage en « Diagnostic vendu » demande d'abord le montant du contrat. */
 export function StatutSelect({
@@ -9,6 +10,8 @@ export function StatutSelect({
   options,
   nomProspect,
   suggestion,
+  packs,
+  packsInitiaux,
   onChangeStatut,
   onVente,
 }: {
@@ -16,8 +19,10 @@ export function StatutSelect({
   options: string[];
   nomProspect: string;
   suggestion: number | null;
+  packs: Pack[];
+  packsInitiaux: string[];
   onChangeStatut: (statut: string) => Promise<void>;
-  onVente: (montant: number | null) => Promise<void>;
+  onVente: (montant: number | null, packsVendus: string[]) => Promise<void>;
 }) {
   const [valeur, setValeur] = useState(defaultValue);
   const [dialogue, setDialogue] = useState(false);
@@ -59,12 +64,14 @@ export function StatutSelect({
         <VenteDialog
           nomProspect={nomProspect}
           suggestion={suggestion}
+          packs={packs}
+          packsInitiaux={packsInitiaux}
           enCours={enCours}
           onAnnuler={() => setDialogue(false)}
-          onConfirmer={(montant) =>
+          onConfirmer={(montant, packsVendus) =>
             startTransition(async () => {
               try {
-                await onVente(montant);
+                await onVente(montant, packsVendus);
                 setValeur("Diagnostic vendu");
                 setDialogue(false);
               } catch {

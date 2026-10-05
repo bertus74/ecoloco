@@ -49,6 +49,8 @@ export interface Commerc {
   /** Niveau saisi à la qualification — prime sur `Niveau` (calculé par WF-04). */
   niveau_qualifie: NiveauScore | null;
   packs_pertinents: string[];
+  /** Packs effectivement vendus, saisis à la vente (≠ packs_pertinents, retenus à la qualification). */
+  packs_vendus: string[];
   prochaine_etape: string | null;
   rgpd_accord_le: string | null;
   qualifie_le: string | null;

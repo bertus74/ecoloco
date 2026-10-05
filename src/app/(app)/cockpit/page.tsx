@@ -119,11 +119,12 @@ export default async function CockpitPage() {
   }
   const secteursTries = [...parSecteur.entries()].sort((a, b) => b[1].total - a[1].total);
 
-  // CA par pack : montant des diagnostics vendus, réparti à parts égales entre les packs retenus.
+  // CA par pack : montant des diagnostics vendus, réparti à parts égales entre les packs vendus
+  // (à défaut, les packs retenus à la qualification).
   const { data: packs } = await supabase.from("packs").select("*").order("ordre").returns<Pack[]>();
   const caParPack = new Map<string, number>();
   for (const p of list.filter((x) => x.statut_prospect === "Diagnostic vendu" && x.montant_devis)) {
-    const ids = p.packs_pertinents?.length ? p.packs_pertinents : ["sans_pack"];
+    const ids = p.packs_vendus?.length ? p.packs_vendus : p.packs_pertinents?.length ? p.packs_pertinents : ["sans_pack"];
     for (const id of ids) caParPack.set(id, (caParPack.get(id) ?? 0) + p.montant_devis! / ids.length);
   }
   const lignesPacks = [
