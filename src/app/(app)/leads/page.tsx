@@ -105,7 +105,7 @@ export default async function LeadsDuJourPage() {
         )}
       </div>
       <p className="mt-3 text-xs text-[var(--muted)]">
-        Facture estimée = surface × ratio de consommation du secteur × 0,19 €/kWh (voir docs/ca-potentiel-formule.md).
+        Facture estimée = surface × consommation de référence de l&apos;activité (ADEME, base OPERAT 2023) × 0,19 €/kWh.
       </p>
     </div>
   );

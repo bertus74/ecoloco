@@ -1,4 +1,5 @@
 import type { Commerc } from "@/lib/types";
+import { ratioConso } from "@/lib/ratios-ademe";
 
 export type SecteurId =
   | "boulangerie"
@@ -38,11 +39,9 @@ export function secteurDe(categorie: string | null): SecteurId {
 }
 
 // Même formule que ca_potentiel (docs/ca-potentiel-formule.md), sans le % d'économies :
-// surface (80 m² par défaut) × ratio conso (kWh/m²/an) × 0,19 €/kWh.
+// surface (80 m² si inconnue ou nulle) × ratio conso ADEME OPERAT (kWh/m²/an) × 0,19 €/kWh.
 export function factureEstimee(p: Pick<Commerc, "Cat_scraping" | "surface">): number {
-  const cat = (p.Cat_scraping ?? "").toLowerCase();
-  const ratio = /boulang|poisson|charcut|traiteur/.test(cat) ? 600 : /restaurant/.test(cat) ? 400 : 275;
-  return Math.round((p.surface ?? 80) * ratio * 0.19);
+  return Math.round((p.surface || 80) * ratioConso(p.Cat_scraping).kwhM2 * 0.19);
 }
 
 export const euros = (n: number | null | undefined) =>
