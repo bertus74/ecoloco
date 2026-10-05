@@ -4,7 +4,7 @@ import type { Commerc, Interaction } from "@/lib/types";
 
 function scoreBadgeClass(niveau: string | null) {
   if (niveau === "Chaud") return "bg-[var(--danger-light)] text-[var(--danger)]";
-  if (niveau === "Tiede") return "bg-[var(--primary-light)] text-[var(--primary-dark)]";
+  if (niveau === "Tiede") return "bg-[var(--warning-light)] text-[var(--warning)]";
   return "bg-[var(--background)] text-[var(--muted)]";
 }
 

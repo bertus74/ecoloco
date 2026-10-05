@@ -2,28 +2,16 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Commerc, Commercial, Rdv } from "@/lib/types";
 import { creerRdv } from "./actions";
+import { ProspectSearch } from "./prospect-search";
 import { RdvFiche } from "./rdv-fiche";
+import { FUSEAU, ajouterJours, jourSemaine, parisVersIso, ymdParis } from "@/lib/heure-paris";
 
 const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-function startOfWeek(offset: number) {
-  const now = new Date();
-  const day = now.getDay() === 0 ? 7 : now.getDay();
-  const monday = new Date(now);
-  monday.setHours(0, 0, 0, 0);
-  monday.setDate(now.getDate() - day + 1 + offset * 7);
-  return monday;
-}
-
-function ymdLocal(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function fmtDate(d: Date) {
-  return ymdLocal(d);
+// Lundi (AAAA-MM-JJ, heure de Paris) de la semaine courante décalée de `offset` semaines.
+function lundiDeLaSemaine(offset: number) {
+  const aujourdhui = ymdParis(new Date());
+  return ajouterJours(aujourdhui, 1 - jourSemaine(aujourdhui) + offset * 7);
 }
 
 export default async function CalendrierPage({
@@ -53,17 +41,14 @@ export default async function CalendrierPage({
     ? await supabase.from("commerciaux").select("*").returns<Commercial[]>()
     : { data: null };
 
-  const monday = startOfWeek(offset);
+  const lundi = lundiDeLaSemaine(offset);
   const nbJours = vueActive === "2semaines" ? 14 : vueActive === "agenda" ? 14 : 7;
-  const finPeriode = new Date(monday);
-  finPeriode.setDate(monday.getDate() + nbJours - 1);
-  finPeriode.setHours(23, 59, 59, 999);
 
   let rdvQuery = supabase
     .from("rdv")
     .select("*")
-    .gte("date_rdv", monday.toISOString())
-    .lte("date_rdv", finPeriode.toISOString())
+    .gte("date_rdv", parisVersIso(lundi))
+    .lt("date_rdv", parisVersIso(ajouterJours(lundi, nbJours)))
     .order("date_rdv");
 
   if (isDg && commercial) {
@@ -88,17 +73,14 @@ export default async function CalendrierPage({
     : { data: [] as Commercial[] };
   const commercialParId = new Map((commerciauxForRdv ?? []).map((c) => [c.id, c]));
 
-  const { data: mesProspects } = await supabase
-    .from("commerc")
-    .select("*")
-    .not("statut_prospect", "in", '("Perdu","Blacklist","Diagnostic vendu","À valider")')
-    .order("Nom")
-    .limit(200)
-    .returns<Commerc[]>();
-
-  const prospectPreselectionne = prospect
-    ? (mesProspects ?? []).find((p) => String(p.id) === prospect) ?? null
-    : null;
+  // Prospect transmis depuis sa fiche : chargé directement par son id, quel que soit son rang alphabétique.
+  const { data: prospectPreselectionne } = prospect
+    ? await supabase
+        .from("commerc")
+        .select("id, Nom, Ville")
+        .eq("id", prospect)
+        .maybeSingle<Pick<Commerc, "id" | "Nom" | "Ville">>()
+    : { data: null };
 
   const { data: prochain } = await supabase
     .from("rdv")
@@ -118,11 +100,7 @@ export default async function CalendrierPage({
     prochainNom = p ? `${p.Nom} — ${p.Ville}` : "";
   }
 
-  const jours = Array.from({ length: nbJours }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
-  });
+  const jours = Array.from({ length: nbJours }, (_, i) => ajouterJours(lundi, i));
 
   const lienVue = (v: string) =>
     `/calendrier?week=${offset}&vue=${v}${commercial ? `&commercial=${commercial}` : ""}`;
@@ -141,7 +119,7 @@ export default async function CalendrierPage({
             ←
           </Link>
           <span className="text-sm text-[var(--muted)]">
-            {fmtDate(monday)} – {fmtDate(jours[jours.length - 1])}
+            {lundi} – {jours[jours.length - 1]}
           </span>
           <Link
             href={lienSemaine(offset + 1)}
@@ -218,12 +196,12 @@ export default async function CalendrierPage({
         <div className={`mb-6 grid gap-2 ${vueActive === "2semaines" ? "grid-cols-7" : "grid-cols-7"}`}>
           {jours.map((d, i) => {
             const dayRdvs = (rdvs ?? []).filter(
-              (r) => ymdLocal(new Date(r.date_rdv)) === fmtDate(d),
+              (r) => ymdParis(new Date(r.date_rdv)) === d,
             );
             return (
               <div key={i} className={vueActive === "2semaines" && i === 7 ? "col-start-1" : undefined}>
                 <p className="mb-2 text-center text-xs text-[var(--muted)]">
-                  {JOURS[i % 7]} {d.getDate()}
+                  {JOURS[i % 7]} {Number(d.slice(8))}
                 </p>
                 <div className="flex min-h-24 flex-col gap-1.5 rounded-md bg-[var(--background)] p-1.5">
                   {dayRdvs.map((r) => {
@@ -249,7 +227,11 @@ export default async function CalendrierPage({
           >
             <span className="font-medium">{prochainNom}</span>
             <span className="text-[var(--muted)]">
-              {new Date(prochain.date_rdv).toLocaleString("fr-FR")}
+              {new Date(prochain.date_rdv).toLocaleString("fr-FR", {
+                timeZone: FUSEAU,
+                dateStyle: "short",
+                timeStyle: "short",
+              })}
             </span>
           </Link>
         </div>
@@ -261,24 +243,14 @@ export default async function CalendrierPage({
           <div>
             <label className="mb-1 block text-xs text-[var(--muted)]">Prospect</label>
             {prospectPreselectionne ? (
-              <div className="flex h-[34px] w-56 items-center rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-sm">
+              <div className="flex h-[34px] w-64 items-center rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-sm">
                 <input type="hidden" name="commerc_id" value={prospectPreselectionne.id} />
                 <span className="truncate">
                   {prospectPreselectionne.Nom} — {prospectPreselectionne.Ville}
                 </span>
               </div>
             ) : (
-              <select
-                name="commerc_id"
-                defaultValue=""
-                required
-                className="w-56 rounded-md border border-[var(--border)] px-2 py-1.5 text-sm"
-              >
-                <option value="" disabled>Choisir…</option>
-                {(mesProspects ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>{p.Nom} — {p.Ville}</option>
-                ))}
-              </select>
+              <ProspectSearch />
             )}
           </div>
           <div>

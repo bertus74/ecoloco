@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Commerc, Commercial, Interaction } from "@/lib/types";
+import type { AideCee, CasClient, Commerc, Commercial, Interaction, Pack } from "@/lib/types";
+import { niveauAffiche, packsDuProspect } from "@/lib/packs";
+import { QualificationModal } from "./qualification-modal";
+import { calculerArgumentaire } from "@/lib/argumentaire";
+import { NiveauBadge } from "@/components/niveau-badge";
+import { SECTEURS, euros, factureEstimee, secteurDe } from "@/lib/secteurs";
 import {
   addInteraction,
   changerCommercial,
@@ -59,6 +64,36 @@ export default async function ProspectPage({
     .order("created_at", { ascending: false })
     .returns<Interaction[]>();
 
+  const secteur = secteurDe(prospect.Cat_scraping);
+
+  const { data: aidesToutes } = await supabase.from("aides_cee").select("*").returns<AideCee[]>();
+  const { data: aides } = await supabase
+    .from("aides_cee")
+    .select("*")
+    .contains("secteurs", [secteur])
+    .order("montant_max", { ascending: false })
+    .returns<AideCee[]>();
+
+  const { data: casSimilaires } = await supabase
+    .from("cas_clients")
+    .select("*")
+    .eq("secteur", secteur)
+    .order("economies_annuelles", { ascending: false })
+    .limit(1)
+    .returns<CasClient[]>();
+  const cas = casSimilaires?.[0] ?? null;
+
+  const { data: tousPacks } = await supabase.from("packs").select("*").order("ordre").returns<Pack[]>();
+  const { packs: packsAffiches, qualifies: packsQualifies } = packsDuProspect(prospect, tousPacks ?? []);
+
+  const argu = calculerArgumentaire(prospect, tousPacks ?? [], aidesToutes ?? []);
+  const departement = (prospect.departement ?? "").padStart(2, "0");
+  const aidesLocales = (aides ?? []).filter(
+    (a) => argu.aidesApplicables && (!a.departements || a.departements.includes(departement)),
+  );
+
+  const totalCee = aidesLocales.filter((a) => a.est_cee).reduce((s, a) => s + (a.montant_max ?? 0), 0);
+
   const { data: auth } = await supabase.auth.getUser();
   let isDg = false;
   if (auth.user) {
@@ -94,7 +129,7 @@ export default async function ProspectPage({
   const changerCommercialBound = changerCommercial.bind(null, id);
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <Link href="/pipeline" className="mb-4 inline-block text-sm text-[var(--muted)]">
         ← Retour au pipeline
       </Link>
@@ -106,9 +141,18 @@ export default async function ProspectPage({
             {prospect.Adresse}, {prospect.Ville}{prospect.pays ? `, ${prospect.pays}` : ""}
           </p>
         </div>
-        <span className="rounded-md bg-[var(--danger-light)] px-3 py-1 text-sm font-medium text-[var(--danger)]">
-          Score {prospect.Score_Energ ?? "—"} · {prospect.Niveau ?? "—"}
-        </span>
+        <div className="flex flex-col items-end gap-1.5">
+          <span className="text-2xl font-medium tabular-nums">
+            {prospect.Score_Energ ?? "—"}
+            <span className="text-sm text-[var(--muted)]">/100</span>
+          </span>
+          <NiveauBadge niveau={niveauAffiche(prospect)} />
+          {prospect.qualifie_le ? (
+            <span className="text-xs text-[var(--muted)]">
+              Qualifié le {new Date(prospect.qualifie_le).toLocaleDateString("fr-FR")}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {jours !== null && jours >= 10 ? (
@@ -134,7 +178,15 @@ export default async function ProspectPage({
           <table className="w-full text-sm">
             <tbody>
               <tr>
-                <td className="py-1.5 text-[var(--muted)]">CA potentiel (EcoLoco)</td>
+                <td className="py-1.5 text-[var(--muted)]">Secteur</td>
+                <td className="py-1.5 text-right font-medium">{SECTEURS[secteur].label}</td>
+              </tr>
+              <tr>
+                <td className="py-1.5 text-[var(--muted)]">Facture énergie estimée</td>
+                <td className="py-1.5 text-right font-medium">{euros(factureEstimee(prospect))}/an</td>
+              </tr>
+              <tr>
+                <td className="py-1.5 text-[var(--muted)]">CA potentiel (Eco-Locaux)</td>
                 <td className="py-1.5 text-right font-medium">
                   {prospect.devis_potentiel != null ? `${prospect.devis_potentiel.toLocaleString("fr-FR")} €` : "—"}
                 </td>
@@ -170,14 +222,145 @@ export default async function ProspectPage({
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <h2 className="mb-3 text-base font-medium">Détail du score</h2>
           {scoringLog ? (
-            <div className="flex flex-col gap-2 text-sm">
-              <div className="flex justify-between"><span className="text-[var(--muted)]">Type commerce</span><span>{detail.type ?? "—"}/40</span></div>
-              <div className="flex justify-between"><span className="text-[var(--muted)]">Note Google</span><span>{detail.note ?? "—"}/20</span></div>
-              <div className="flex justify-between"><span className="text-[var(--muted)]">Surface</span><span>{detail.surface ?? "—"}/25</span></div>
-              <div className="flex justify-between"><span className="text-[var(--muted)]">Avis</span><span>{detail.avis ?? "—"}/15</span></div>
+            <div className="flex flex-col gap-3 text-sm">
+              <ScoreBarre label="Type de commerce" valeur={detail.type} max={40} />
+              <ScoreBarre label="Note Google" valeur={detail.note} max={20} />
+              <ScoreBarre label="Surface" valeur={detail.surface} max={25} />
+              <ScoreBarre label="Nombre d'avis" valeur={detail.avis} max={15} />
+              <p className="border-t border-[var(--border)] pt-2 text-xs text-[var(--muted)]">
+                Calcul WF-04 — type 40 + note 20 + surface 25 + avis 15
+              </p>
             </div>
           ) : (
             <p className="text-sm text-[var(--muted)]">Pas encore scoré.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-5 rounded-lg border border-[var(--primary)] bg-[var(--primary-light)] p-5">
+        <h2 className="mb-3 text-base font-medium text-[var(--primary-dark)]">Argumentaire chiffré</h2>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
+          <Chiffre label="Économies estimées" valeur={`${euros(argu.economiesAnnuelles)}/an`} fort />
+          <Chiffre label="Facture actuelle estimée" valeur={`${euros(argu.factureAnnuelle)}/an`} />
+          <Chiffre label="Investissement (à partir de)" valeur={`${euros(argu.investissement)} HT`} />
+          <Chiffre
+            label={argu.aidesApplicables ? "Primes CEE mobilisables" : "Primes CEE"}
+            valeur={argu.aidesApplicables ? `jusqu'à ${euros(argu.primesCee)}` : "non applicable"}
+          />
+          <Chiffre label="Reste à charge estimé" valeur={euros(argu.resteACharge)} fort={argu.resteACharge === 0} />
+          <Chiffre label="Retour sur investissement" valeur={argu.roiMois ? `~${argu.roiMois} mois` : "—"} />
+          <div className="col-span-2">
+            <p className="text-xs text-[var(--primary-dark)]/70">Packs {packsQualifies ? "retenus" : "recommandés"}</p>
+            <p className="font-medium text-[var(--primary-dark)]">{argu.packs.map((k) => `${k.emoji} ${k.label}`).join(" + ") || "—"}</p>
+          </div>
+        </div>
+        {argu.autresAides.length > 0 ? (
+          <p className="mt-3 text-xs text-[var(--primary-dark)]">
+            Également mobilisables : {argu.autresAides.map((a) => `${a.label} (jusqu'à ${euros(a.montant_max)})`).join(", ")}.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mb-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-base font-medium">{packsQualifies ? "Packs retenus" : "Packs éligibles"}</h2>
+          <span className="text-xs text-[var(--muted)]">
+            {packsQualifies ? "Choisis à la qualification" : `D'après le secteur ${SECTEURS[secteur].label.toLowerCase()}`}
+          </span>
+        </div>
+        {packsAffiches.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">Aucun pack.</p>
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
+            {packsAffiches.map((k) => (
+              <div key={k.id} className="rounded-md border border-[var(--border)] p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium">
+                    {k.emoji} {k.label}
+                  </p>
+                  {k.badge ? (
+                    <span className="shrink-0 rounded-full bg-[var(--background)] px-2 py-0.5 text-[10px] text-[var(--muted)]">{k.badge}</span>
+                  ) : null}
+                </div>
+                {k.description ? <p className="mt-1 text-xs text-[var(--muted)]">{k.description}</p> : null}
+                <p className="mt-2 text-sm">
+                  <span className="text-xs text-[var(--muted)]">à partir de </span>
+                  <span className="font-medium tabular-nums">{euros(k.prix)} HT</span>
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">
+                  {[k.roi_mois ? `ROI ${k.roi_mois} mois` : null, k.gain, k.duree_travaux_jours ? `${k.duree_travaux_jours} j de travaux` : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        {packsAffiches.some((k) => k.exemple) ? (
+          <p className="mt-3 text-xs text-[var(--warning)]">Prix et ROI provisoires — à valider par la direction.</p>
+        ) : null}
+        {prospect.prochaine_etape ? (
+          <p className="mt-3 border-t border-[var(--border)] pt-3 text-sm">
+            <span className="text-[var(--muted)]">Prochaine étape : </span>
+            {prospect.prochaine_etape}
+            {prospect.prochaine_relance_le
+              ? ` — ${new Date(prospect.prochaine_relance_le).toLocaleDateString("fr-FR")}`
+              : ""}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mb-5 grid grid-cols-2 gap-4">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <h2 className="text-base font-medium">Aides éligibles</h2>
+          <p className="mb-3 text-xs text-[var(--muted)]">
+            Primes CEE cumulables jusqu&apos;à {euros(totalCee)} — montants plafonds indicatifs
+          </p>
+          {aidesLocales.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">
+              {argu.aidesApplicables ? "Aucune aide référencée pour ce secteur." : "Aides françaises non applicables hors de France."}
+            </p>
+          ) : (
+            <ul className="flex flex-col text-sm">
+              {aidesLocales.map((a) => (
+                <li key={a.id} className="flex items-center justify-between gap-3 border-t border-[var(--border)] py-2 first:border-0">
+                  <span className="flex items-center gap-2">
+                    {a.label}
+                    {a.est_cee ? (
+                      <span className="rounded bg-[var(--primary-light)] px-1.5 text-[10px] font-medium text-[var(--primary-dark)]">CEE</span>
+                    ) : null}
+                  </span>
+                  <span className="tabular-nums text-[var(--muted)]">≤ {euros(a.montant_max)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <h2 className="mb-3 text-base font-medium">Cas client similaire</h2>
+          {cas ? (
+            <div className="flex flex-col gap-2 text-sm">
+              <p className="font-medium">
+                {cas.nom}
+                <span className="font-normal text-[var(--muted)]"> · {cas.ville}</span>
+              </p>
+              <p>
+                <span className="font-medium tabular-nums">{euros(cas.economies_annuelles)}</span>/an économisés
+                {cas.roi_mois ? ` · ROI ${cas.roi_mois} mois` : ""}
+              </p>
+              {cas.actions.length > 0 ? (
+                <p className="text-xs text-[var(--muted)]">{cas.actions.join(" · ")}</p>
+              ) : null}
+              {cas.temoignage ? <p className="text-xs italic text-[var(--muted)]">« {cas.temoignage} »</p> : null}
+              {cas.exemple ? (
+                <p className="mt-1 rounded-md bg-[var(--warning-light)] px-2 py-1 text-xs text-[var(--warning)]">
+                  Cas d&apos;exemple issu de la maquette — à remplacer par un vrai client.
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">Aucun cas client pour ce secteur.</p>
           )}
         </div>
       </div>
@@ -309,6 +492,13 @@ export default async function ProspectPage({
       </div>
 
       <div className="flex gap-3">
+        <QualificationModal
+          prospectId={id}
+          packs={tousPacks ?? []}
+          niveauInitial={niveauAffiche(prospect)}
+          packsInitiaux={packsAffiches.map((k) => k.id)}
+          dejaQualifie={!!prospect.qualifie_le}
+        />
         <Link
           href={`/calendrier?prospect=${id}`}
           className="flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-center text-sm hover:bg-[var(--background)]"
@@ -322,6 +512,32 @@ export default async function ProspectPage({
           Générer l&apos;email
         </Link>
       </div>
+    </div>
+  );
+}
+
+function ScoreBarre({ label, valeur, max }: { label: string; valeur?: number; max: number }) {
+  const v = valeur ?? 0;
+  return (
+    <div>
+      <div className="mb-1 flex justify-between">
+        <span className="text-[var(--muted)]">{label}</span>
+        <span className="tabular-nums">
+          {valeur ?? "—"}/{max}
+        </span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--background)]">
+        <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${Math.min(100, (v / max) * 100)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function Chiffre({ label, valeur, fort = false }: { label: string; valeur: string; fort?: boolean }) {
+  return (
+    <div>
+      <p className="text-xs text-[var(--primary-dark)]/70">{label}</p>
+      <p className={`tabular-nums text-[var(--primary-dark)] ${fort ? "text-lg font-semibold" : "font-medium"}`}>{valeur}</p>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import type { Rdv } from "@/lib/types";
+import { FUSEAU, hmParis, ymdParis } from "@/lib/heure-paris";
 import { modifierRdv, supprimerRdv } from "./actions";
 
 const STATUTS_RDV = ["Planifié", "Confirmé", "Annulé", "Réalisé"] as const;
@@ -20,19 +21,6 @@ interface CommercialInfo {
   email: string | null;
   telephone: string | null;
   zone_geo: string | null;
-}
-
-function ymdLocal(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function hmLocal(d: Date) {
-  const h = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
-  return `${h}:${min}`;
 }
 
 export function RdvFiche({
@@ -76,9 +64,9 @@ export function RdvFiche({
           className="flex w-full items-center gap-4 border-t border-[var(--border)] px-4 py-3 text-left text-sm first:border-0 hover:bg-[var(--background)]"
         >
           <span className="w-28 text-[var(--muted)]">
-            {date.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit" })}
+            {date.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit", timeZone: FUSEAU })}
           </span>
-          <span className="w-14 font-medium">{hmLocal(date)}</span>
+          <span className="w-14 font-medium">{hmParis(date)}</span>
           <span className="flex-1">{prospect?.Nom ?? `#${rdv.commerc_id}`}</span>
           <span className="text-[var(--muted)]">{rdv.lieu ?? ""}</span>
           <span className="text-xs text-[var(--muted)]">{rdv.statut}</span>
@@ -89,7 +77,7 @@ export function RdvFiche({
           onClick={() => setOuvert(true)}
           className="w-full rounded-md bg-[var(--primary-light)] px-2 py-1.5 text-left text-xs text-[var(--primary-dark)] hover:opacity-80"
         >
-          <p className="font-medium">{hmLocal(date)}</p>
+          <p className="font-medium">{hmParis(date)}</p>
           <p>{prospect?.Nom ?? `#${rdv.commerc_id}`}</p>
         </button>
       )}
@@ -134,7 +122,7 @@ export function RdvFiche({
                   <input
                     name="date"
                     type="date"
-                    defaultValue={ymdLocal(date)}
+                    defaultValue={ymdParis(date)}
                     required
                     className="w-full rounded-md border border-[var(--border)] px-2 py-1.5 text-sm"
                   />
@@ -144,7 +132,7 @@ export function RdvFiche({
                   <input
                     name="heure"
                     type="time"
-                    defaultValue={hmLocal(date)}
+                    defaultValue={hmParis(date)}
                     className="w-full rounded-md border border-[var(--border)] px-2 py-1.5 text-sm"
                   />
                 </div>

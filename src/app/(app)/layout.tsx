@@ -27,7 +27,10 @@ export default async function AppLayout({
     : "";
 
   const navItems = [
+    { href: "/aujourdhui", label: "Aujourd'hui", icon: "☀️" },
+    { href: "/leads", label: "Leads du jour", icon: "🔥" },
     { href: "/pipeline", label: "Pipeline", icon: "📋" },
+    { href: "/kanban", label: "Kanban", icon: "🗂️" },
     { href: "/prospects", label: "Prospects", icon: "📇" },
     { href: "/scraping", label: "Scraping", icon: "🔍" },
     { href: "/calendrier", label: "Calendrier", icon: "📅" },
@@ -40,7 +43,7 @@ export default async function AppLayout({
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-6 py-3">
         <div className="flex items-center gap-8">
-          <span className="text-base font-medium text-[var(--primary-dark)]">EcoLoco</span>
+          <span className="text-base font-medium text-[var(--primary-dark)]">Eco-Locaux</span>
           <nav className="flex items-center gap-1">
             {navItems.map((item) => (
               <Link

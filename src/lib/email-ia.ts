@@ -1,97 +1,111 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Commerc, Commercial } from "@/lib/types";
+import type { Commerc } from "@/lib/types";
+import type { Argumentaire } from "@/lib/argumentaire";
+import { SECTEURS } from "@/lib/secteurs";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// prospect.ca_potentiel = estimation des économies annuelles du prospect (pas le CA EcoLoco,
-// voir devis_potentiel). Formule, sources et limites : docs/ca-potentiel-formule.md
-function genererBrouillonTemplate(prospect: Commerc, commercial: Commercial | null) {
-  const nom = prospect.Nom ?? "votre établissement";
-  const ville = prospect.Ville ?? "";
-  const avis = prospect.Nbre_Avis ?? 0;
-  const note = prospect.note_google ?? null;
-  const ca = prospect.ca_potentiel;
-  const surface = prospect.surface;
+const MODELE = "claude-sonnet-5-5";
 
-  const lignes: string[] = [];
-  lignes.push("Bonjour,");
-  lignes.push("");
+export const PHRASE_RDV =
+  "Je vous propose un diagnostic gratuit de 30 minutes sur place, au jour et à l'heure qui vous conviennent le mieux.";
 
-  let intro = `En tant que ${prospect.Cat_scraping?.toLowerCase() || "commerce"} situé${ville ? ` à ${ville}` : ""}`;
-  if (note != null && avis > 0) intro += ` (${avis} avis, ${note}/5)`;
-  intro += ", votre facture énergétique pourrait être optimisée significativement.";
-  lignes.push(intro);
-  lignes.push("");
+const SYSTEME = `Tu rédiges des emails de prospection B2B pour Eco-Locaux, qui réduit la facture énergétique des commerces de proximité (boulangeries, restaurants, boucheries…) avec des packs de travaux financés par les primes CEE.
 
-  if (ca != null) {
-    lignes.push(
-      `Nous estimons un potentiel d'économie d'environ ${ca.toLocaleString("fr-FR")} € par an pour ${nom}, grâce aux Certificats d'Économies d'Énergie (CEE) du secteur tertiaire, qui peuvent financer une partie significative de travaux comme l'isolation, l'éclairage LED ou la régulation du chauffage.`,
-    );
-  } else if (surface != null) {
-    lignes.push(
-      `Avec une surface de ${surface} m², ${nom} entre typiquement dans les profils où nos diagnostics révèlent un fort potentiel d'économie, avec un financement possible via les Certificats d'Économies d'Énergie (CEE) du secteur tertiaire.`,
-    );
-  } else {
-    lignes.push(
-      `Les commerces de ce secteur ont souvent un potentiel d'économie énergétique important, avec un financement possible via les Certificats d'Économies d'Énergie (CEE), qui peuvent couvrir une partie des travaux d'isolation, d'éclairage ou de chauffage.`,
-    );
-  }
-  lignes.push("");
-  lignes.push("Seriez-vous disponible pour un diagnostic gratuit cette semaine ?");
-  lignes.push("");
-  lignes.push("Cordialement,");
-  lignes.push(`${commercial ? `${commercial.Prénom} ${commercial.Nom}` : ""}`);
-  lignes.push("EcoLoco");
+Objectif : un email court et percutant, qui donne envie de prendre rendez-vous grâce à des chiffres concrets.
 
-  return lignes.join("\n");
+Règles impératives :
+- N'écris jamais le nom du commerce, ni dans l'objet ni dans le corps : dis « votre boulangerie », « votre restaurant », « votre commerce »…
+- N'utilise que les chiffres fournis, arrondis tels quels ; n'invente aucun montant, pourcentage, délai ni témoignage client.
+- Les montants d'aides sont des plafonds : écris « jusqu'à … € de primes CEE », jamais un montant garanti.
+- Corps de 130 mots maximum, phrases courtes, ton sobre et professionnel, sans superlatifs ni points d'exclamation.
+- Structure : salutation (« Bonjour {prénom}, » si un prénom est fourni, sinon « Bonjour, ») ; une phrase sur la facture estimée ; les économies annuelles ; les packs recommandés en liste, un par ligne, précédés de leur emoji ; la phrase de financement ; puis exactement la phrase d'invitation fournie ; enfin « Cordialement, » puis « Eco-Locaux » sur la ligne suivante, sans nom de personne.
+- Objets : moins de 70 caractères, avec le montant des économies annuelles, sans nom de commerce.
+- Orthographe et accords irréprochables.`;
+
+const SCHEMA = {
+  type: "object",
+  properties: {
+    objets: {
+      type: "array",
+      items: { type: "string" },
+      description: "Deux propositions d'objet différentes.",
+    },
+    corps: { type: "string", description: "Corps de l'email, prêt à relire." },
+  },
+  required: ["objets", "corps"],
+  additionalProperties: false,
+} as const;
+
+export interface BrouillonIA {
+  objets: string[];
+  corps: string;
 }
 
+/** Rédige objet + corps à partir de l'argumentaire chiffré. Renvoie null si l'IA est indisponible. */
 export async function genererBrouillon(
-  prospect: Commerc,
-  commercial: Commercial | null,
-): Promise<{ corps: string; viaIA: boolean }> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { corps: genererBrouillonTemplate(prospect, commercial), viaIA: false };
-  }
+  prospect: Pick<Commerc, "Cat_scraping" | "Ville" | "surface">,
+  argumentaire: Argumentaire,
+  variables: Record<string, string>,
+): Promise<BrouillonIA | null> {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
 
   const faits = {
-    nom_etablissement: prospect.Nom,
+    type_de_commerce: prospect.Cat_scraping,
+    secteur: SECTEURS[argumentaire.secteur].label,
     ville: prospect.Ville,
-    pays: prospect.pays,
-    categorie: prospect.Cat_scraping,
-    note_google: prospect.note_google,
-    nombre_avis: prospect.Nbre_Avis,
     surface_m2: prospect.surface,
-    ca_potentiel_estime_euros: prospect.ca_potentiel,
-    commercial_prenom: commercial?.Prénom,
-    commercial_nom: commercial?.Nom,
+    prenom_du_gerant: variables.prenom || null,
+    facture_energie_estimee_euros_par_an: variables.factureEstimee,
+    poste_le_plus_consommateur: SECTEURS[argumentaire.secteur].poste,
+    part_de_ce_poste_dans_la_facture: variables.pourcentagePrincipal || null,
+    economies_estimees_euros_par_an: variables.economiesAnnuelles,
+    packs_recommandes: variables.packsRecommandes.split("\n"),
+    phrase_de_financement: variables.phraseFinancement,
+    phrase_invitation: PHRASE_RDV,
+    signature: "Eco-Locaux",
   };
 
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 500,
-      system:
-        "Tu rédiges des emails de prospection B2B courts et professionnels pour EcoLoco, une société de conseil en efficacité énergétique qui démarche des commerces (boulangeries, restaurants, etc.) en France et en Belgique. Le ton est sobre, factuel, jamais survendeur. N'invente aucune donnée chiffrée qui ne figure pas dans les faits fournis. Soigne scrupuleusement l'orthographe et la grammaire française, en particulier les accords en genre et en nombre (ex: \"une pizzeria reconnue\" et non \"reconnu\") — relis mentalement chaque accord avant de répondre. Quand tu évoques un financement, nomme le dispositif précisément (Certificats d'Économies d'Énergie / CEE du secteur tertiaire) plutôt que de rester vague sur \"des aides\". Réponds uniquement avec le corps de l'email en français, sans objet, sans balises, prêt à être envoyé après relecture par le commercial.",
+    const message = await anthropic.beta.messages.create({
+      model: MODELE,
+      max_tokens: 16000,
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: SCHEMA },
+      },
+      // En cas de refus pour raison de politique, l'API rejoue la requête sur un modèle de repli.
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      system: SYSTEME,
       messages: [
         {
           role: "user",
-          content: `Rédige un email de prospection à partir de ces données prospect (JSON) :\n${JSON.stringify(faits, null, 2)}\n\nL'email doit : saluer, mentionner brièvement pourquoi ce commerce est pertinent (catégorie, ville, avis si disponibles) sans accord de genre fautif, évoquer le potentiel d'économie ou de CA estimé s'il est fourni en le rattachant explicitement aux Certificats d'Économies d'Énergie (CEE) du secteur tertiaire, proposer un diagnostic gratuit, se terminer par une signature avec le prénom/nom du commercial et "EcoLoco". Ne mentionne aucune donnée absente des faits fournis.`,
+          content: `Rédige l'email de prospection à partir de ces faits (JSON) :\n${JSON.stringify(faits, null, 2)}`,
         },
       ],
     });
 
-    const corps = message.content
+    if (message.stop_reason === "refusal" || message.stop_reason === "max_tokens") {
+      console.error("Génération email IA interrompue :", message.stop_reason, message.stop_details);
+      return null;
+    }
+
+    const texte = message.content
       .filter((b) => b.type === "text")
       .map((b) => b.text)
-      .join("\n")
-      .trim();
-
-    if (!corps) throw new Error("Réponse IA vide");
-
-    return { corps, viaIA: true };
+      .join("");
+    const brouillon = JSON.parse(texte) as BrouillonIA;
+    if (!brouillon.corps?.trim()) return null;
+    return { objets: (brouillon.objets ?? []).filter(Boolean).slice(0, 2), corps: brouillon.corps.trim() };
   } catch (err) {
-    console.error("Génération email IA échouée, repli sur le template :", err);
-    return { corps: genererBrouillonTemplate(prospect, commercial), viaIA: false };
+    if (err instanceof Anthropic.RateLimitError) {
+      console.error("Génération email IA : limite de débit atteinte");
+    } else if (err instanceof Anthropic.APIError) {
+      console.error(`Génération email IA : erreur API ${err.status}`, err.message);
+    } else {
+      console.error("Génération email IA échouée :", err);
+    }
+    return null;
   }
 }

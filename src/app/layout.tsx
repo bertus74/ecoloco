@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EcoLoco",
-  description: "Dashboard de prospection EcoLoco",
+  title: "Eco-Locaux",
+  description: "Dashboard de prospection Eco-Locaux",
 };
 
 export default function RootLayout({

@@ -43,9 +43,15 @@ export interface Commerc {
   montant_devis: number | null;
   /** Économies annuelles estimées du prospect sur sa facture énergétique. */
   ca_potentiel: number | null;
-  /** Valeur potentielle de la prestation pour EcoLoco (CA pipeline). */
+  /** Valeur potentielle de la prestation pour Eco-Locaux (CA pipeline). */
   devis_potentiel: number | null;
   valide_le: string | null;
+  /** Niveau saisi à la qualification — prime sur `Niveau` (calculé par WF-04). */
+  niveau_qualifie: NiveauScore | null;
+  packs_pertinents: string[];
+  prochaine_etape: string | null;
+  rgpd_accord_le: string | null;
+  qualifie_le: string | null;
 }
 
 export interface Commercial {
@@ -87,4 +93,51 @@ export interface Rdv {
   statut: "Planifié" | "Confirmé" | "Annulé" | "Réalisé";
   google_event_id: string | null;
   created_at: string;
+}
+
+export interface AideCee {
+  id: string;
+  label: string;
+  montant_max: number | null;
+  est_cee: boolean;
+  secteurs: string[];
+  exemple: boolean;
+  /** Départements éligibles ; null = aide nationale. */
+  departements: string[] | null;
+}
+
+export interface CasClient {
+  id: number;
+  nom: string;
+  secteur: string;
+  ville: string | null;
+  economies_annuelles: number | null;
+  investissement: number | null;
+  roi_mois: number | null;
+  actions: string[];
+  temoignage: string | null;
+  exemple: boolean;
+}
+
+export interface TemplateEmail {
+  secteur: string;
+  objet: string;
+  corps: string;
+}
+
+export interface Pack {
+  id: string;
+  emoji: string;
+  label: string;
+  description: string | null;
+  prix: number | null;
+  roi_mois: number | null;
+  secteurs: string[];
+  ordre: number;
+  exemple: boolean;
+  badge: string | null;
+  gain: string | null;
+  duree_travaux_jours: number | null;
+  /** Ids des aides (`aides_cee`) mobilisables pour ce pack. */
+  aides: string[];
 }
