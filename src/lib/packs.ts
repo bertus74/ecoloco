@@ -1,7 +1,7 @@
 import type { Commerc, NiveauScore, Pack } from "@/lib/types";
 import { secteurDe } from "@/lib/secteurs";
 
-/** Niveau affiché : celui de la qualification manuelle s'il existe, sinon celui de WF-04. */
+/** Niveau affiché : celui de la qualification manuelle s'il existe, sinon celui de WF-05. */
 export function niveauAffiche(p: Pick<Commerc, "Niveau" | "niveau_qualifie">): NiveauScore | null {
   return p.niveau_qualifie ?? p.Niveau;
 }

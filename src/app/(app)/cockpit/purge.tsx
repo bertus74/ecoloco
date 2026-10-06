@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { DUREE_CONSERVATION_ANS } from "@/lib/conservation";
 import { purgerProspects, type CiblePurge } from "./actions";
 
 const CIBLES: { id: CiblePurge; titre: string; aide: string }[] = [
@@ -9,6 +10,11 @@ const CIBLES: { id: CiblePurge; titre: string; aide: string }[] = [
     id: "nouveaux_sans_contact",
     titre: "Nouveaux jamais contactés",
     aide: "Statut « Nouveau » sans aucune interaction. Ils peuvent être rescrapés plus tard.",
+  },
+  {
+    id: "inactifs",
+    titre: `Sans activité depuis ${DUREE_CONSERVATION_ANS} ans`,
+    aide: `Durée de conservation (RGPD) : aucun contact depuis ${DUREE_CONSERVATION_ANS} ans, ou fiche créée il y a plus de ${DUREE_CONSERVATION_ANS} ans et jamais contactée.`,
   },
 ];
 
@@ -34,9 +40,9 @@ export function Purge({ nombres, total }: { nombres: Record<CiblePurge, number>;
       <h2 className="text-base font-medium">Maintenance des données</h2>
       <p className="mt-1 text-sm text-[var(--muted)]">
         {total} prospects en base. L&apos;affichage est fiable jusqu&apos;à 1 000 lignes ; au-delà, purgez. La suppression est
-        définitive et efface aussi les interactions et RDV liés. Les prospects en « Blacklist » ne sont jamais supprimés.
+        définitive et efface aussi les interactions et RDV liés. Les prospects en « Blacklist » et les clients (« Diagnostic vendu ») ne sont jamais supprimés.
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {CIBLES.map((c) => (
           <div key={c.id} className="rounded-md border border-[var(--border)] p-3">
             <p className="text-sm font-medium">

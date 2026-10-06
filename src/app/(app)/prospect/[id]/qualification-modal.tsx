@@ -140,8 +140,9 @@ export function QualificationModal({
             <label className="mt-5 flex cursor-pointer items-start gap-2.5 rounded-md bg-[var(--background)] px-3 py-2.5 text-sm">
               <input type="checkbox" checked={rgpd} onChange={(e) => setRgpd(e.target.checked)} className="mt-0.5 accent-[var(--primary)]" />
               <span>
-                Le prospect a donné son accord pour que ses données soient conservées et utilisées par Eco-Locaux
-                (RGPD). <span className="text-[var(--danger)]">Obligatoire</span>
+                Le prospect a été informé de l&apos;origine de ses coordonnées et a accepté, oralement ou par écrit,
+                qu&apos;Eco-Locaux les conserve et le recontacte (RGPD). Indiquez dans la note comment il l&apos;a dit.{" "}
+                <span className="text-[var(--danger)]">Obligatoire</span>
               </span>
             </label>
 

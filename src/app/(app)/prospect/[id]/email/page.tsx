@@ -23,6 +23,19 @@ export default async function EmailProspectPage({
 
   if (!prospect) notFound();
 
+  if (prospect.statut_prospect === "Blacklist") {
+    return (
+      <div className="max-w-6xl">
+        <Link href={`/prospect/${id}`} className="mb-4 inline-block text-sm text-[var(--muted)]">
+          ← Retour à la fiche
+        </Link>
+        <p className="rounded-md bg-[var(--danger-light)] px-4 py-3 text-sm text-[var(--danger)]">
+          {prospect.Nom} est en liste d&apos;opposition (Blacklist) : aucun email ne peut lui être envoyé.
+        </p>
+      </div>
+    );
+  }
+
 
   const secteur = secteurDe(prospect.Cat_scraping);
 

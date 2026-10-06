@@ -5,7 +5,7 @@
  * Détail et limites : docs/ca-potentiel-formule.md.
  *
  * Le premier motif qui correspond à la catégorie Google Maps (en minuscules) l'emporte.
- * Même table, dans le même ordre, dans la fonction SQL `ratio_conso_ademe` et dans WF-04.
+ * Même table, dans le même ordre, dans la fonction SQL `ratio_conso_ademe` et dans WF-05.
  */
 export const RATIOS_ADEME: { activite: string; motif: string; kwhM2: number }[] = [
   { activite: "Boulangerie, pâtisserie", motif: "boulang|p[âa]tiss|g[âa]teau|dessert|bagel|bakery", kwhM2: 757 },

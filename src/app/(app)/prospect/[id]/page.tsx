@@ -11,6 +11,7 @@ import {
   addInteraction,
   changerCommercial,
   changerStatut,
+  enregistrerOpposition,
   enregistrerVente,
   modifierMontant,
   reporterRelance,
@@ -19,6 +20,7 @@ import {
 import { InlineSelect } from "./inline-select";
 import { MontantEditable } from "./montant-editable";
 import { StatutSelect } from "./statut-select";
+import { OppositionBouton } from "./opposition-bouton";
 
 const STATUTS = [
   "À valider", "Nouveau", "Contacté", "Intéressé", "RDV planifié", "Diagnostic vendu", "Perdu", "Blacklist",
@@ -145,6 +147,7 @@ export default async function ProspectPage({
   const reporterRelanceBound = reporterRelance.bind(null, id, prospect.nb_reports_relance);
   const changerStatutBound = changerStatut.bind(null, id);
   const enregistrerVenteBound = enregistrerVente.bind(null, id);
+  const enregistrerOppositionBound = enregistrerOpposition.bind(null, id);
   const modifierMontantBound = modifierMontant.bind(null, id);
   const changerCommercialBound = changerCommercial.bind(null, id);
 
@@ -153,6 +156,12 @@ export default async function ProspectPage({
       <Link href="/pipeline" className="mb-4 inline-block text-sm text-[var(--muted)]">
         ← Retour au pipeline
       </Link>
+
+      {prospect.statut_prospect === "Blacklist" ? (
+        <div role="alert" className="mb-4 rounded-md bg-[var(--danger-light)] px-4 py-3 text-sm text-[var(--danger)]">
+          Ce prospect est en liste d&apos;opposition (Blacklist) : ne pas le contacter. Aucun email ne peut lui être préparé.
+        </div>
+      ) : null}
 
       <div className="mb-6 flex items-start justify-between">
         <div>
@@ -262,7 +271,7 @@ export default async function ProspectPage({
                 </div>
               ) : null}
               <p className="border-t border-[var(--border)] pt-2 text-xs text-[var(--muted)]">
-                Calcul WF-04 — type 40 + note 20 + surface 25 + avis 15, bonus DPE de −5 (A) à +10 (G)
+                Calcul WF-05 — type 40 + note 20 + surface 25 + avis 15, bonus DPE de −5 (A) à +10 (G)
               </p>
             </div>
           ) : (
@@ -443,6 +452,7 @@ export default async function ProspectPage({
               onVente={enregistrerVenteBound}
             />
           </div>
+          {prospect.statut_prospect !== "Blacklist" ? <OppositionBouton onOpposition={enregistrerOppositionBound} /> : null}
           {isDg && commerciaux ? (
             <div className="flex items-center gap-2">
               <span className="text-[var(--muted)]">Commercial :</span>

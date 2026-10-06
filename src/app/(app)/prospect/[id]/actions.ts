@@ -79,6 +79,36 @@ export async function changerStatut(prospectId: string, statut: string) {
   rafraichirVues();
 }
 
+/** Le prospect ne veut plus être contacté (réponse « STOP ») : passage en Blacklist, relances supprimées, trace dans l'historique. */
+export async function enregistrerOpposition(prospectId: string) {
+  const supabase = await createClient();
+  const commercialId = await getCurrentCommercialId(supabase);
+  const maintenant = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("commerc")
+    .update({
+      statut_prospect: "Blacklist",
+      prochaine_relance_le: null,
+      prochaine_etape: null,
+      derniere_interaction: maintenant,
+    })
+    .eq("id", prospectId)
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("Prospect introuvable ou non autorisé");
+
+  await supabase.from("interactions").insert({
+    commerc_id: Number(prospectId),
+    commercial_id: commercialId,
+    type_interaction: "Note",
+    note: "Opposition reçue (STOP) — ne plus contacter ce prospect.",
+    date_interaction: maintenant,
+  });
+
+  rafraichirVues();
+}
+
 export async function changerCommercial(prospectId: string, commercialId: string) {
   const supabase = await createClient();
   await supabase

@@ -18,7 +18,7 @@ ca_potentiel = surface(m²) × ratio_conso(kWh/m²/an) × prix_énergie(€/kWh)
 Calculée au même endroit sur trois supports, avec **la même table de ratios dans le même ordre** :
 - app : `src/lib/ratios-ademe.ts` (facture estimée affichée, argumentaire) ;
 - base : fonctions SQL `ratio_conso_ademe(cat)` et `calculer_ca_potentiel(cat, surface, score)` (migration `ca_potentiel_ratios_ademe_operat`), utilisées par le trigger `auto_ca_potentiel` pour les prospects pas encore scorés (score 50 par défaut) ;
-- n8n : **WF-04 — Scoring Automatique**, nœud « Assembler Score Final », qui écrase la valeur avec le score réel.
+- n8n : **WF-05 — Scoring Automatique**, nœud « Assembler Score Final », qui écrase la valeur avec le score réel.
 
 Toute modification d'un ratio doit être faite aux trois endroits.
 

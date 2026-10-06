@@ -46,7 +46,7 @@ export interface Commerc {
   /** Valeur potentielle de la prestation pour Eco-Locaux (CA pipeline). */
   devis_potentiel: number | null;
   valide_le: string | null;
-  /** Niveau saisi à la qualification — prime sur `Niveau` (calculé par WF-04). */
+  /** Niveau saisi à la qualification — prime sur `Niveau` (calculé par WF-05). */
   niveau_qualifie: NiveauScore | null;
   packs_pertinents: string[];
   /** Packs effectivement vendus, saisis à la vente (≠ packs_pertinents, retenus à la qualification). */
@@ -54,7 +54,7 @@ export interface Commerc {
   prochaine_etape: string | null;
   rgpd_accord_le: string | null;
   qualifie_le: string | null;
-  /** DPE tertiaire ADEME trouvé à l'adresse (WF-08). null = pas encore cherché. */
+  /** DPE tertiaire ADEME trouvé à l'adresse (WF-04). null = pas encore cherché. */
   dpe_statut: "trouvé" | "vierge" | "aucun" | "adresse imprécise" | null;
   dpe_numero: string | null;
   dpe_etiquette: "A" | "B" | "C" | "D" | "E" | "F" | "G" | null;

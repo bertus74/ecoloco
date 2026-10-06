@@ -4,6 +4,7 @@ import type { Commerc, Commercial, Interaction, Pack, Rdv } from "@/lib/types";
 import { SECTEURS, secteurDe } from "@/lib/secteurs";
 import { CockpitVue } from "./vue";
 import { Purge } from "./purge";
+import { STATUTS_CONSERVES, filtreInactifs, limiteConservation } from "@/lib/conservation";
 
 const NB_SEMAINES = 8;
 
@@ -60,11 +61,18 @@ export default async function CockpitPage() {
     .returns<Pick<Rdv, "commercial_id" | "statut" | "created_at">[]>();
 
   const compter = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
-  const [totalBase, nbPerdus, nbNouveauxSansContact] = await Promise.all([
+  const [totalBase, nbPerdus, nbNouveauxSansContact, nbInactifs] = await Promise.all([
     compter(supabase.from("commerc").select("id", { count: "exact", head: true })),
     compter(supabase.from("commerc").select("id", { count: "exact", head: true }).eq("statut_prospect", "Perdu")),
     compter(
       supabase.from("commerc").select("id", { count: "exact", head: true }).eq("statut_prospect", "Nouveau").is("derniere_interaction", null),
+    ),
+    compter(
+      supabase
+        .from("commerc")
+        .select("id", { count: "exact", head: true })
+        .not("statut_prospect", "in", `(${STATUTS_CONSERVES.map((x) => `"${x}"`).join(",")})`)
+        .or(filtreInactifs(limiteConservation())),
     ),
   ]);
 
@@ -190,7 +198,7 @@ export default async function CockpitPage() {
       statutLabels={statutLabelsAvecDonnees}
       statutCounts={statutCountsAvecDonnees}
     />
-    <Purge total={totalBase} nombres={{ perdus: nbPerdus, nouveaux_sans_contact: nbNouveauxSansContact }} />
+    <Purge total={totalBase} nombres={{ perdus: nbPerdus, nouveaux_sans_contact: nbNouveauxSansContact, inactifs: nbInactifs }} />
     </>
   );
 }
