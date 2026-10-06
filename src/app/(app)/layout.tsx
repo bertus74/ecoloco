@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { NavLinks } from "./nav-links";
 import { SignOutButton } from "./sign-out-button";
 import type { Commercial } from "@/lib/types";
 import { LIMITE_LIGNES, SEUIL_ALERTE } from "@/lib/limite-lignes";
@@ -39,7 +40,7 @@ export default async function AppLayout({
     { href: "/leads", label: "Leads du jour", icon: "🔥" },
     { href: "/pipeline", label: "Pipeline", icon: "📋" },
     { href: "/kanban", label: "Kanban", icon: "🗂️" },
-    { href: "/prospects", label: "Prospects", icon: "📇" },
+    { href: "/prospects", label: "Prospects", icon: "📇", aussi: ["/prospect"] },
     { href: "/scraping", label: "Scraping", icon: "🔍" },
     { href: "/calendrier", label: "Calendrier", icon: "📅" },
   ];
@@ -52,17 +53,7 @@ export default async function AppLayout({
       <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-6 py-3">
         <div className="flex items-center gap-8">
           <span className="text-base font-medium text-[var(--primary-dark)]">Eco-Locaux</span>
-          <nav className="flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-md px-3 py-1.5 text-sm text-[var(--foreground)] hover:bg-[var(--primary-light)]"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <NavLinks items={navItems} />
         </div>
         <div className="flex items-center gap-3">
           {profile ? (
