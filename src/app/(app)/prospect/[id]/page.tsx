@@ -6,6 +6,7 @@ import { niveauAffiche, packsDuProspect } from "@/lib/packs";
 import { QualificationModal } from "./qualification-modal";
 import { calculerArgumentaire } from "@/lib/argumentaire";
 import { NiveauBadge } from "@/components/niveau-badge";
+import { MESSAGE_HORS_FRANCE, PaysBadge } from "@/components/pays-badge";
 import { SECTEURS, euros, factureEstimee, secteurDe } from "@/lib/secteurs";
 import {
   addInteraction,
@@ -167,8 +168,12 @@ export default async function ProspectPage({
         <div>
           <h1 className="text-xl font-medium">{prospect.Nom}</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            {prospect.Adresse}, {prospect.Ville}{prospect.pays ? `, ${prospect.pays}` : ""}
+            {prospect.Adresse}, {prospect.Ville}
+            <PaysBadge pays={prospect.pays} />
           </p>
+          {prospect.pays && prospect.pays !== "France" ? (
+            <p className="mt-1 max-w-xl text-xs text-amber-800">{MESSAGE_HORS_FRANCE}</p>
+          ) : null}
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <span className="text-2xl font-medium tabular-nums">

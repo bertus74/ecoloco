@@ -12,10 +12,10 @@ export default async function KanbanPage() {
 
   const { data } = await supabase
     .from("commerc")
-    .select("id, Nom, Ville, Score_Energ, Niveau, niveau_qualifie, statut_prospect, montant_devis, packs_pertinents, packs_vendus")
+    .select("id, Nom, Ville, pays, Score_Energ, Niveau, niveau_qualifie, statut_prospect, montant_devis, packs_pertinents, packs_vendus")
     .in("statut_prospect", COLONNES_KANBAN)
     .order("Score_Energ", { ascending: false, nullsFirst: false })
-    .returns<Pick<Commerc, "id" | "Nom" | "Ville" | "Score_Energ" | "Niveau" | "niveau_qualifie" | "statut_prospect" | "montant_devis" | "packs_pertinents" | "packs_vendus">[]>();
+    .returns<Pick<Commerc, "id" | "Nom" | "Ville" | "pays" | "Score_Energ" | "Niveau" | "niveau_qualifie" | "statut_prospect" | "montant_devis" | "packs_pertinents" | "packs_vendus">[]>();
   const { data: packs } = await supabase.from("packs").select("*").order("ordre").returns<Pack[]>();
 
   const tous = data ?? [];
@@ -28,6 +28,7 @@ export default async function KanbanPage() {
     id: p.id,
     nom: p.Nom ?? "Sans nom",
     ville: p.Ville,
+    pays: p.pays,
     score: p.Score_Energ,
     niveau: niveauAffiche(p),
     statut: p.statut_prospect ?? "Nouveau",

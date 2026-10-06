@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { PaysBadge } from "@/components/pays-badge";
 import type { Commerc } from "@/lib/types";
 import {
   validerProspect,
@@ -113,7 +114,7 @@ export function ValiderList({ items }: { items: Commerc[] }) {
             <p className="text-sm font-medium">{p.Nom}</p>
             <p className="text-xs text-[var(--muted)]">
               {p.Ville}
-              {p.pays ? `, ${p.pays}` : ""}
+              <PaysBadge pays={p.pays} />
             </p>
           </div>
           <div>

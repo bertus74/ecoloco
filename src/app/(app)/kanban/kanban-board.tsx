@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { NiveauBadge } from "@/components/niveau-badge";
+import { PaysBadge } from "@/components/pays-badge";
 import { VenteDialog } from "@/components/vente-dialog";
 import type { NiveauScore, Pack } from "@/lib/types";
 import { deplacerProspect } from "./actions";
@@ -12,6 +13,7 @@ export interface CarteKanban {
   id: number;
   nom: string;
   ville: string | null;
+  pays: string | null;
   score: number | null;
   niveau: NiveauScore | null;
   statut: string;
@@ -147,7 +149,10 @@ export function KanbanBoard({
                     <Link href={`/prospect/${c.id}`} className="block text-sm font-medium leading-snug hover:underline" draggable={false}>
                       {c.nom}
                     </Link>
-                    <p className="text-xs text-[var(--muted)]">{c.ville}</p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {c.ville}
+                      <PaysBadge pays={c.pays} />
+                    </p>
                     <div className="mt-2 flex items-center justify-between">
                       <NiveauBadge niveau={c.niveau} />
                       <span className="text-xs font-medium tabular-nums">{c.score ?? "—"}</span>

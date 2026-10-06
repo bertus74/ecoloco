@@ -4,6 +4,7 @@ import type { Commerc, Pack } from "@/lib/types";
 import { PackPills } from "@/components/pack-pills";
 import { niveauAffiche, packsDuProspect } from "@/lib/packs";
 import { NiveauBadge, StatutBadge } from "@/components/niveau-badge";
+import { PaysBadge } from "@/components/pays-badge";
 import { SECTEURS, euros, factureEstimee, secteurDe } from "@/lib/secteurs";
 
 const NB_LEADS = 20;
@@ -81,7 +82,7 @@ export default async function LeadsDuJourPage() {
                 <p className="truncate text-sm font-medium">{p.Nom}</p>
                 <p className="truncate text-xs text-[var(--muted)]">
                   {p.Ville}
-                  {p.pays ? `, ${p.pays}` : ""}
+                  <PaysBadge pays={p.pays} />
                 </p>
               </div>
               <div className="min-w-0">

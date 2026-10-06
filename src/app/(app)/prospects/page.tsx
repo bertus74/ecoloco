@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PaysBadge } from "@/components/pays-badge";
 import { createClient } from "@/lib/supabase/server";
 import type { Commerc, Interaction } from "@/lib/types";
 
@@ -179,7 +180,7 @@ export default async function ProspectsPage({
                 <div>
                   <p className="text-sm font-medium">{p.Nom}</p>
                   <p className="text-xs text-[var(--muted)]">
-                    {p.Ville}{p.pays ? `, ${p.pays}` : ""}
+                    {p.Ville}<PaysBadge pays={p.pays} />
                   </p>
                 </div>
                 <div>
